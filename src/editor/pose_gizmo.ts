@@ -144,17 +144,17 @@ export class PoseGizmo {
     const group = new THREE.Group();
     const material = this.#material(COLORS[axis]);
     const [shaft, shaftOutline] = this.#outlined(
-      new THREE.CylinderGeometry(0.035, 0.035, 0.78, 12),
-      new THREE.CylinderGeometry(0.058, 0.058, 0.8, 12),
+      new THREE.CylinderGeometry(0.026, 0.026, 0.78, 12),
+      new THREE.CylinderGeometry(0.045, 0.045, 0.8, 12),
       material,
     );
     shaft.position.y = 0.39;
     const [head, headOutline] = this.#outlined(
-      new THREE.ConeGeometry(0.1, 0.24, 16),
-      new THREE.ConeGeometry(0.135, 0.31, 16),
+      new THREE.ConeGeometry(0.075, 0.19, 16),
+      new THREE.ConeGeometry(0.105, 0.25, 16),
       material,
     );
-    head.position.y = 0.9;
+    head.position.y = 0.875;
     const pick = new THREE.Mesh(
       new THREE.CylinderGeometry(0.12, 0.12, 1.05, 8),
       this.#pickMaterial,
@@ -177,12 +177,12 @@ export class PoseGizmo {
     material.side = THREE.DoubleSide;
     material.opacity = 0.55;
     const [square, squareOutline] = this.#outlined(
-      new THREE.PlaneGeometry(0.2, 0.2),
-      new THREE.PlaneGeometry(0.24, 0.24),
+      new THREE.PlaneGeometry(0.28, 0.28),
+      new THREE.PlaneGeometry(0.32, 0.32),
       material,
     );
-    square.position.set(0.3, 0.3, 0);
-    const pick = new THREE.Mesh(new THREE.PlaneGeometry(0.26, 0.26), this.#pickMaterial);
+    square.position.set(0.34, 0.34, 0);
+    const pick = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), this.#pickMaterial);
     pick.position.copy(square.position);
     group.add(square, pick);
     group.matrixAutoUpdate = false;
