@@ -2,7 +2,7 @@
 // this lists the pairs that interpenetrate: problems (furniture into furniture, or deep into a wall) in red; the expected
 // ones (walls meeting walls, things standing against them) only behind "show expected". Clicking one selects the pair
 // and glides the camera to the spot.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as api from "../api.ts";
 import { Button } from "../ui.ts";
 import { keyedProject } from "../world/keys.ts";
@@ -28,6 +28,7 @@ export function ClipBadge() {
       clearTimeout(timer);
     };
   }, [project]);
+  const anchor = useRef<HTMLDivElement>(null);
   const problems = clips.filter((c) => c.severity === "problem");
   if (!problems.length && !open) return null;
   const listed = showExpected ? clips : problems;
@@ -47,7 +48,7 @@ export function ClipBadge() {
     setOpen(false);
   };
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={anchor} style={{ position: "relative" }}>
       <Button
         size="sm"
         variant={problems.length ? "danger" : "ghost"}
@@ -62,11 +63,12 @@ export function ClipBadge() {
         <div
           data-testid="clip-list"
           style={{
-            position: "absolute",
-            right: 0,
-            top: "calc(100% + 6px)",
+            // fixed to the window, not the badge: on a phone the badge sits mid-bar and a badge-anchored list ran off the left edge
+            position: "fixed",
+            right: 8,
+            top: (anchor.current?.getBoundingClientRect().bottom ?? 48) + 6,
             zIndex: 20,
-            width: 360,
+            width: "min(360px, calc(100vw - 16px))",
             maxHeight: 320,
             overflow: "auto",
             background: "var(--surface)",
