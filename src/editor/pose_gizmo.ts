@@ -181,7 +181,7 @@ export class PoseGizmo {
       new THREE.PlaneGeometry(0.32, 0.32),
       material,
     );
-    square.position.set(0.34, 0.34, 0);
+    square.position.set(0.22, 0.22, 0);
     const pick = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.34), this.#pickMaterial);
     pick.position.copy(square.position);
     group.add(square, pick);
