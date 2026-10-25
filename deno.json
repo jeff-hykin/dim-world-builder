@@ -24,8 +24,8 @@
     "vite": "npm:vite@^7.1.0",
     "vitest": "npm:vitest@^3.2.4",
     "vitest/": "npm:/vitest@^3.2.4/",
-    "dimos-react": "https://raw.githubusercontent.com/jeff-hykin/dimos-react/v0.3.2/src/index.ts",
-    "dimos-react/three": "https://raw.githubusercontent.com/jeff-hykin/dimos-react/v0.3.2/src/three.ts"
+    "dimos-react": "https://raw.githubusercontent.com/jeff-hykin/dimos-react/v0.3.4/src/index.ts",
+    "dimos-react/three": "https://raw.githubusercontent.com/jeff-hykin/dimos-react/v0.3.4/src/three.ts"
   },
   "compilerOptions": {
     "jsx": "react-jsx",

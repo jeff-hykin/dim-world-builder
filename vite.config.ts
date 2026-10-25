@@ -11,23 +11,15 @@ const desktop = "http://127.0.0.1:5555";
 const backend = `http://127.0.0.1:${process.env.API_PORT ?? 8787}`;
 const imports: Record<string, string> =
   JSON.parse(readFileSync(new URL("./deno.json", import.meta.url), "utf8")).imports;
-// deno (deno check) reads dimos-react's TypeScript source at its tag; the page (and vitest) bundles esm.sh's build of
-// that same tag, with react, react-dom and three left to this page's own
+// dimos-react: its TypeScript source at its tag on GitHub (deno.json's URLs, the same files deno reads), fetched and
+// compiled into the page; its react, react-dom and three resolve to this page's own
 const dimosReact = Object.fromEntries(
-  Object.entries(imports)
-    .filter(([name]) => name.startsWith("dimos-react"))
-    .map(([name, url]) => [
-      name,
-      url.replace(
-        /^https:\/\/raw\.githubusercontent\.com\/jeff-hykin\/dimos-react\/([^/]+)\//,
-        "https://esm.sh/gh/jeff-hykin/dimos-react@$1/",
-      ) + "?external=react,react-dom,three",
-    ]),
+  Object.entries(imports).filter(([name]) => name.startsWith("dimos-react")),
 );
 
 export default defineConfig({
   base: "./",
-  // dimos-react comes from esm.sh (deno.json's URLs), fetched and bundled at build (tools/esm_fetch.ts)
+  // dimos-react's source is fetched at build (tools/esm_fetch.ts)
   plugins: [esmFetch(dimosReact), react()],
   server: {
     // `deno task dev` (:5173) next to `deno task serve` (:8787) and a running Desktop (:5555)
