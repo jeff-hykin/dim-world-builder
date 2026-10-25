@@ -532,6 +532,11 @@ function WorldLayer({ assets }: { assets: Record<string, MeshAsset> }) {
           const slab = objects.get(`slab:${floor.id}`);
           if (!slab || !floor.slab || !aoByFloor.current.has(floor.id)) continue;
           const shared = aoByFloor.current.get(floor.id)!;
+          // occlusion off: nothing to bake (and nothing to hide, which would stay hidden)
+          if (!occlusion || !live.viewer.renderer) {
+            clearFloorAO(shared);
+            continue;
+          }
           // only what stands on this floor and stays put
           const shown = new Map<THREE.Object3D, boolean>();
           for (const body of world.bodies) {
@@ -539,11 +544,7 @@ function WorldLayer({ assets }: { assets: Record<string, MeshAsset> }) {
             if (!object) continue;
             shown.set(object, object.visible);
             object.visible = body.floor === floor.id && !body.mocap &&
-              !["slab", "hill", "hole", "light"].includes(body.kind);
-          }
-          if (!occlusion || !live.viewer.renderer) {
-            clearFloorAO(shared);
-            continue;
+              !["slab", "hill", "hole", "light", "image"].includes(body.kind);
           }
           bakeFloorAO(live.viewer.renderer, root, floor.elevation, {
             x0: floor.slab.center[0] - floor.slab.sizeX / 2,
@@ -884,6 +885,15 @@ function applyScale(item: Item, raw: Vec3): Item {
           sizeX: round(item.params.sizeX * s[0]),
           sizeY: round(item.params.sizeY * s[1]),
           amplitude: round(item.params.amplitude * s[2], 0.01),
+        },
+      };
+    case "image":
+      return {
+        ...item,
+        params: {
+          ...item.params,
+          width: round(item.params.width * s[1], 0.01),
+          height: round(item.params.height * s[2], 0.01),
         },
       };
     default:

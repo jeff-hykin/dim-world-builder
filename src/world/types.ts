@@ -122,6 +122,20 @@ export interface AprilTagParams {
   size: number;
 }
 
+/** a photo on a plane, for reference only: never collides, never exported to the sim, skipped by the clip check */
+export interface ImageParams {
+  /** a URL this app serves (POST api/images returns it), e.g. files/images/<id>.jpg */
+  src: string;
+  /** meters along the item's local y */
+  width: number;
+  /** meters along the item's local z */
+  height: number;
+  /** 0..1 (default 1) */
+  opacity?: number;
+  /** seen from behind too (default true) */
+  doubleSided?: boolean;
+}
+
 export interface HillParams {
   sizeX: number;
   sizeY: number;
@@ -206,7 +220,9 @@ export type Item =
   | (ItemBase & { kind: "hill"; params: HillParams })
   | (ItemBase & { kind: "hole"; params: HoleParams })
   | (ItemBase & { kind: "apriltag"; params: AprilTagParams })
-  | (ItemBase & { kind: "light"; params: LightParams });
+  | (ItemBase & { kind: "light"; params: LightParams })
+  // lies in the local y-z plane centered on position, facing local +x
+  | (ItemBase & { kind: "image"; params: ImageParams });
 
 export type ItemKind = Item["kind"];
 

@@ -23,6 +23,17 @@ function texture(path: string, onLoaded: () => void): THREE.Texture {
   }
   return t;
 }
+/** a reference photo (image items) by its URL relative to the page, loaded once, smooth */
+function photo(src: string, onLoaded: () => void): THREE.Texture {
+  let t = textures.get(`photo:${src}`);
+  if (!t) {
+    t = textureLoader.load(src, onLoaded);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    textures.set(`photo:${src}`, t);
+  }
+  return t;
+}
 const objLoader = new OBJLoader();
 const glbCache = new Map<string, Promise<THREE.Object3D>>();
 const objCache = new Map<string, Promise<THREE.Object3D>>();
@@ -617,6 +628,25 @@ export function bodyObject(
         geo,
         new THREE.MeshStandardMaterial({ map: texture(shape.texture, onLoaded), roughness: 0.9 }),
       );
+      place(plane, shape);
+      group.add(plane);
+      continue;
+    }
+    if (shape.image) {
+      // a plane in the body's y-z, facing +x: +y is the image's right as seen from in front, +z its top
+      const geo = new THREE.PlaneGeometry(shape.size[1] * 2, shape.size[2] * 2);
+      geo.rotateY(Math.PI / 2).rotateX(Math.PI / 2);
+      const plane = new THREE.Mesh(
+        geo,
+        new THREE.MeshBasicMaterial({
+          map: photo(shape.image.src, onLoaded),
+          side: shape.image.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
+          transparent: shape.image.opacity < 1,
+          opacity: shape.image.opacity,
+          depthWrite: shape.image.opacity >= 1,
+        }),
+      );
+      plane.userData.referenceImage = true;
       place(plane, shape);
       group.add(plane);
       continue;

@@ -44,6 +44,8 @@ export interface Shape {
   meshFile?: { asset: string; file: string; scale: Vec3 };
   /** an image on the shape's +x face (AprilTags): a path under the app's assets, e.g. apriltags/tag36h11_00003.png */
   texture?: string;
+  /** a photo on the shape's +x face (image items): the editor draws it, the export never writes it */
+  image?: { src: string; opacity: number; doubleSided: boolean };
   /** a surface look the views draw on top of rgba (a floor slab's concrete) */
   finish?: Exclude<FloorFinish, "plain">;
   hfield?: {
@@ -1093,6 +1095,21 @@ export function itemShapes(item: Item, assets: Record<string, MeshAsset>): Shape
       ];
     case "apriltag":
       return aprilTagShapes(item.params);
+    case "image":
+      // editor-only: a picture plane (size: half-extents, its y-z face) with no collision and no MuJoCo geom
+      return [{
+        type: "box",
+        pos: [0, 0, 0],
+        quat: IDENTITY,
+        size: [0, Math.max(item.params.width, 0.01) / 2, Math.max(item.params.height, 0.01) / 2],
+        rgba: [1, 1, 1, item.params.opacity ?? 1],
+        role: "editor",
+        image: {
+          src: item.params.src,
+          opacity: Math.min(1, Math.max(0, item.params.opacity ?? 1)),
+          doubleSided: item.params.doubleSided ?? true,
+        },
+      }];
     case "light":
       // a bulb to pick it by in the editor; the light itself is in Body.lights
       return [

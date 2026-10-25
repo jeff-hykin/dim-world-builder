@@ -134,9 +134,13 @@ provides:
         /api/project/items:
             post:
                 description: >-
-                    Add items to a saved world. Each item: kind (primitive|mesh|room|stairs|hill|hole|apriltag|light), params,
-                    and optionally name, floor (default the active floor), position [x,y,z], rotation [x,y,z,w], scale, mover.
-                    Returns { added: [item id], items: count, warnings }; warnings lists items that now clip into each other
+                    Add items to a saved world. Each item: kind (primitive|mesh|room|stairs|hill|hole|apriltag|light|image),
+                    params, and optionally name, floor (default the active floor), position [x,y,z], rotation [x,y,z,w],
+                    scale, mover. An image item is a reference photo, visual only (never collides, not exported, not in the
+                    clip check): params { src (from POST /api/images), width, height (meters), opacity? (0-1, default 1),
+                    doubleSided? (default true) }; the picture lies in the item's local y-z plane centered on position (its
+                    center, not its base), facing local +x, with +y its right and +z its top as seen from in front. Returns
+                    { added: [item id], items: count, warnings }; warnings lists items that now clip into each other
                 x-when: you want to add objects, rooms, stairs or obstacles to a saved world
                 requestBody:
                     content:
@@ -150,6 +154,38 @@ provides:
                                     items:
                                         type: array
                                         description: the items to add
+        /api/selection:
+            get:
+                description: >-
+                    The items the user has selected in World Builder (the page they used most recently), as { world (the
+                    open world's saved name, or null), items: [{ id, key, name, kind, floor, position [x,y,z] (meters, z
+                    above its floor), rotation [x,y,z,w], scale, params }], updatedAt }; items is [] when nothing is
+                    selected. Items are as the page has them, unsaved edits included
+                x-when: the user refers to "this", "the selected item" or "what I picked" in World Builder
+                x-dimos-role: context
+        /api/images:
+            post:
+                description: >-
+                    Store a photo (the raw JPEG or PNG bytes as the request body) for an image item. Returns { id, src };
+                    put src in an image item's params (POST /api/project/items with kind image) to place the photo in a
+                    world as a flat, visual-only plane. 415 if the body is not a JPEG or PNG
+                x-when: you want to place a real photo in a world to compare objects against
+                parameters:
+                    -   name: name
+                        in: query
+                        schema:
+                            type: string
+                        description: a short name for the photo, used in its id (optional)
+                requestBody:
+                    content:
+                        image/jpeg:
+                            schema:
+                                type: string
+                                format: binary
+                        image/png:
+                            schema:
+                                type: string
+                                format: binary
         /api/generate:
             post:
                 description: >-
@@ -174,7 +210,8 @@ provides:
         /api/check:
             post:
                 description: >-
-                    Which items clip into each other: MuJoCo checks every pair of collision shapes (floors and hills excluded).
+                    Which items clip into each other: MuJoCo checks every pair of collision shapes (floors, hills and image
+                    items excluded).
                     clips: [{a, b (key, name, kind), depth_m, at [x,y,z]}], warnings: one line each
                 x-when: you need to know whether items in a world overlap
                 x-dimos-role: context

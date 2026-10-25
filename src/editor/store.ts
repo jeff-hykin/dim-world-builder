@@ -341,7 +341,7 @@ export function addFloor(around: Vec3 = [0, 0, 0]) {
     const topFloor = p.floors.reduce((a, b) => (b.elevation > a.elevation ? b : a));
     const id = `floor_${randomHex(6)}`;
     const below = p.items.filter((i) =>
-      i.floor === topFloor.id && !["light", "hill"].includes(i.kind)
+      i.floor === topFloor.id && !["light", "hill", "image"].includes(i.kind)
     );
     let [x0, y0, x1, y1] = [around[0] - 4, around[1] - 4, around[0] + 4, around[1] + 4];
     if (below.length) {

@@ -405,3 +405,29 @@ describe("the floor above stairs", () => {
     expect(grown.sizeY).toBeCloseTo(4);
   });
 });
+
+describe("image items", () => {
+  it("are an editor-only picture plane: no geom in scene.xml", () => {
+    const project = emptyProject("photo");
+    project.items.push({
+      id: "img1",
+      name: "Photo",
+      floor: project.activeFloor,
+      position: [1, 0, 0.6],
+      rotation: [0, 0, 0, 1],
+      scale: [1, 1, 1],
+      kind: "image",
+      params: { src: "files/images/x.jpg", width: 1.6, height: 1.2 },
+    });
+    const world = buildWorld(project, {});
+    const body = world.bodies.find((b) => b.itemId === "img1")!;
+    expect(body.shapes.map((s) => s.role)).toEqual(["editor"]);
+    expect(body.shapes[0].size).toEqual([0, 0.8, 0.6]);
+    expect(body.shapes[0].image).toEqual({
+      src: "files/images/x.jpg",
+      opacity: 1,
+      doubleSided: true,
+    });
+    expect(toScene(world, "photo").xml).not.toMatch(/<geom[^>]*photo/i);
+  });
+});

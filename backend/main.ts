@@ -11,6 +11,9 @@
 //   GET|POST /api/views, POST /api/views/remove   public: a saved world's remembered camera views
 //   GET  /api/views/image?name=&view=&width=&height=   public: a PNG of the world from one view (MuJoCo)
 //   POST /api/check                  public: items whose collision shapes interpenetrate (clips), as warnings
+//   GET  /api/selection              public: the items selected in the most recently active page
+//   POST /api/images?name=           public: store a JPEG/PNG (raw body) for image items; returns { id, src }
+//   POST /api/internal/selection     private: a page reports its world and selection (body: { world, ids, items })
 //   GET|PUT /api/internal/projects/<name>   private: load / autosave one project
 //   GET  /api/internal/linked        private: saved worlds that also save to a file elsewhere ({ name: path })
 //   POST /api/internal/save-as       private: write the project to a .json anywhere; later saves go there too (body: { project, path })
@@ -19,9 +22,10 @@
 //   POST /api/internal/visual?dir=   private: the page's baked visual.glb for an export
 //   GET  /api/internal/dirs?path=    private: folders (and .json files) under a path (the export and open pickers)
 //   GET  /files/library/<id>/<file>, /files/imports/<id>/<file>   private: mesh files
+//   GET  /files/images/<id>.<ext>    private: uploaded reference photos
 
 import { exportProject, packageName } from "./export.ts";
-import type { Item, MeshAsset, Project, Vec3 } from "../src/world/types.ts";
+import type { ImageParams, Item, MeshAsset, Project, Vec3 } from "../src/world/types.ts";
 import { emptyProject } from "../src/world/defaults.ts";
 import { testCourse } from "../src/world/examples.ts";
 import { clutterYard } from "../src/world/examples_clutter.ts";
@@ -44,6 +48,7 @@ const dataDir = app.dataDir ?? `${root}/.data`;
 const libraryDir = `${root}/assets/library`;
 const importsDir = `${dataDir}/imports`;
 const projectsDir = `${dataDir}/projects`;
+const imagesDir = `${dataDir}/images`;
 const cookerDir = `${root}/cooker`;
 const home = Deno.env.get("HOME") ?? "/";
 const desktopUrl = app.desktopUrl ?? "http://127.0.0.1:5555";
@@ -329,6 +334,48 @@ async function showWorld(name: string, focus: boolean) {
   };
 }
 
+// ── the selection: the page that changed it last reports it; agents read it ──
+
+let selection: { world: string | null; ids: string[]; items: Item[]; updatedAt: string | null } = {
+  world: null,
+  ids: [],
+  items: [],
+  updatedAt: null,
+};
+
+/** the selected items as the page has them (unsaved edits included), else as saved */
+async function selectedItems() {
+  const saved = selection.world
+    ? await readJson<Project | null>(`${projectsDir}/${safeName(selection.world)}.json`, null)
+    : null;
+  return selection.ids.flatMap((id) => {
+    const item = selection.items.find((i) => i.id === id) ?? saved?.items.find((i) => i.id === id);
+    if (!item) return [];
+    const { key, name, kind, floor, position, rotation, scale, params } = item;
+    return [{ id, key, name, kind, floor, position, rotation, scale, params }];
+  });
+}
+
+/** an image's type from its first bytes: JPEG or PNG only */
+function imageType(bytes: Uint8Array): "jpg" | "png" | null {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpg";
+  if ([0x89, 0x50, 0x4e, 0x47].every((b, i) => bytes[i] === b)) return "png";
+  return null;
+}
+
+/** what's wrong with an image item, if anything */
+function imageProblem(item: Partial<Item>): string | null {
+  if (item.kind !== "image") return null;
+  const p = item.params as Partial<ImageParams> | undefined;
+  if (typeof p?.src !== "string" || !p.src) {
+    return "an image item needs params.src (POST api/images returns it)";
+  }
+  if (!(Number(p.width) > 0) || !(Number(p.height) > 0)) {
+    return "an image item needs params.width and params.height in meters";
+  }
+  return null;
+}
+
 /** fill in what a caller may leave out of an item: an id, a name, the floor, a pose */
 function completeItem(item: Partial<Item>, floor: string): Item {
   return {
@@ -432,6 +479,8 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     if (project?.format !== "dim-world-builder.project.v1") {
       return json({ error: "expected { project } in dim-world-builder.project.v1 format" }, 400);
     }
+    const problem = (project.items ?? []).map(imageProblem).find(Boolean);
+    if (problem) return json({ error: problem }, 400);
     await saveProject(project);
     return json({ saved: packageName(project.name), items: project.items.length });
   }
@@ -441,6 +490,8 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     const file = `${projectsDir}/${safeName(name)}.json`;
     const project = await readJson<Project | null>(file, null);
     if (!project) return json({ error: `no project ${name}` }, 404);
+    const problem = (items ?? []).map(imageProblem).find(Boolean);
+    if (problem) return json({ error: problem }, 400);
     const added = (items ?? []).map((item) => completeItem(item, project.activeFloor));
     project.items.push(...added);
     await saveProject(project);
@@ -499,6 +550,33 @@ async function api(request: Request, url: URL): Promise<Response | null> {
       await readJson<Project | null>(`${projectsDir}/${safeName(body.name ?? "")}.json`, null);
     if (!project) return json({ error: "give a saved world's { name } or a { project }" }, 400);
     return json(await clipCheck(project, body.tolerance ?? 0.02));
+  }
+  if (route === "GET /api/selection") {
+    return json({
+      world: selection.world ? safeName(selection.world) : null,
+      items: await selectedItems(),
+      updatedAt: selection.updatedAt,
+    });
+  }
+  if (route === "POST /api/internal/selection") {
+    const body = await request.json() as { world?: string; ids?: string[]; items?: Item[] };
+    selection = {
+      world: body.world || null,
+      ids: Array.isArray(body.ids) ? body.ids.map(String) : [],
+      items: Array.isArray(body.items) ? body.items : [],
+      updatedAt: new Date().toISOString(),
+    };
+    return json({ selected: selection.ids.length });
+  }
+  if (route === "POST /api/images") {
+    const bytes = new Uint8Array(await request.arrayBuffer());
+    const extension = imageType(bytes);
+    if (!extension) return json({ error: "the body must be a JPEG or PNG image" }, 415);
+    const name = url.searchParams.get("name") || "image";
+    const id = `${packageName(name).slice(0, 24)}_${crypto.randomUUID().slice(0, 6)}`;
+    await Deno.mkdir(imagesDir, { recursive: true });
+    await Deno.writeFile(`${imagesDir}/${id}.${extension}`, bytes);
+    return json({ id, src: `files/images/${id}.${extension}` });
   }
   if (route === "GET /api/views") {
     const project = await readJson<Project | null>(
@@ -688,6 +766,7 @@ const types: Record<string, string> = {
   svg: "image/svg+xml",
   json: "application/json",
   png: "image/png",
+  jpg: "image/jpeg",
   glb: "model/gltf-binary",
   obj: "text/plain",
   woff2: "font/woff2",
@@ -718,6 +797,9 @@ async function serve(request: Request): Promise<Response> {
     }
     if (path.startsWith("/files/imports/")) {
       return await file(importsDir, path.slice("/files/imports/".length));
+    }
+    if (path.startsWith("/files/images/")) {
+      return await file(imagesDir, path.slice("/files/images/".length));
     }
     if (path.startsWith("/files/apriltags/")) {
       return await file(`${root}/assets/apriltags`, path.slice("/files/apriltags/".length));

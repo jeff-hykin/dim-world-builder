@@ -1,5 +1,6 @@
 import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
+import type { Object3D } from "three";
 import * as api from "./api.ts";
 import {
   Button,
@@ -61,6 +62,7 @@ import {
   setPreviewMotion,
   setShowCollision,
   setSnap,
+  subscribe,
   undo,
   ungroup,
   useEditor,
@@ -121,6 +123,7 @@ export function App() {
     return () => clearTimeout(timer);
   }, [revision]);
 
+  useSelectionReport();
   useKeyboard();
   const phone = usePhone();
   const [sheet, setSheet] = useState<"tools" | "inspector" | null>(null);
@@ -1053,14 +1056,57 @@ function ImportDialog(
   );
 }
 
+/** reports the world and selection to the backend (GET api/selection) when either changes or this page comes to the front */
+function useSelectionReport() {
+  useEffect(() => {
+    let last = "";
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const report = (always = false) => {
+      // a page in the background (another tab, a hidden Desktop window) isn't the one the user is selecting in
+      if (document.visibilityState !== "visible") return;
+      const { project, selection } = getState();
+      const items = project.items.filter((i) => selection.includes(i.id));
+      const sent = JSON.stringify([project.name, selection, items]);
+      if (sent === last && !always) return;
+      last = sent;
+      api.reportSelection(project.name, selection, items).catch(() => {});
+    };
+    // a drag changes the selected items many times a second: report once it settles
+    const unsubscribe = subscribe(() => {
+      clearTimeout(timer);
+      timer = setTimeout(report, 150);
+    });
+    const front = () => report(true);
+    addEventListener("focus", front);
+    document.addEventListener("visibilitychange", front);
+    report(true);
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+      removeEventListener("focus", front);
+      document.removeEventListener("visibilitychange", front);
+    };
+  }, []);
+}
+
 /** the world as one GLB (what the editor draws, Z up like the scene), for viewers that want one visual file */
 async function bakeVisual(): Promise<ArrayBuffer | null> {
   if (!view.worldRoot) return null;
-  const result = await new GLTFExporter().parseAsync(view.worldRoot, {
-    binary: true,
-    onlyVisible: true,
+  // reference photos stay out of the export, as they do out of scene.xml
+  const photos: Object3D[] = [];
+  view.worldRoot.traverse((o) => {
+    if (o.userData.referenceImage && o.visible) photos.push(o);
   });
-  return result as ArrayBuffer;
+  photos.forEach((o) => (o.visible = false));
+  try {
+    const result = await new GLTFExporter().parseAsync(view.worldRoot, {
+      binary: true,
+      onlyVisible: true,
+    });
+    return result as ArrayBuffer;
+  } finally {
+    photos.forEach((o) => (o.visible = true));
+  }
 }
 
 function ExportDialog({ open, onClose }: { open: boolean; onClose: () => void }) {

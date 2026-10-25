@@ -37,7 +37,14 @@ export async function exportProject(
   const project = withAnnotations(keyedProject(unkeyed));
   const name = packageName(project.name);
   const dir = `${parentDir.replace(/\/+$/, "")}/${name}`;
-  const world = buildWorld(project, assets);
+  const built = buildWorld(project, assets);
+  // image items are reference photos for the editor: no body, no geom, no mover in the sim (nor the clip check)
+  const images = new Set(built.bodies.filter((b) => b.kind === "image").map((b) => b.name));
+  const world = {
+    ...built,
+    bodies: built.bodies.filter((b) => !images.has(b.name)),
+    movers: built.movers.filter((m) => !images.has(m.body)),
+  };
   const scene = toScene(world, name);
   await Deno.mkdir(`${dir}/meshes`, { recursive: true });
   const files: string[] = [];

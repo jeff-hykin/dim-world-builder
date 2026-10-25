@@ -36,6 +36,7 @@ import type {
   GrateParams,
   HillParams,
   HoleParams,
+  ImageParams,
   Item,
   ItemGroup,
   LightParams,
@@ -1126,6 +1127,50 @@ function AprilTagEditor({ item }: { item: Extract<Item, { kind: "apriltag" }> })
   );
 }
 
+function ImageEditor({ item }: { item: Extract<Item, { kind: "image" }> }) {
+  const p = item.params;
+  const set = (change: Partial<ImageParams>) =>
+    updateItem(item.id, (i) => ({ ...i, params: { ...p, ...change } } as Item), `image-${item.id}`);
+  return (
+    <>
+      <Field label="Width">
+        <NumberInput
+          value={p.width}
+          min={0.01}
+          step={0.05}
+          unit="m"
+          onChange={(width: number) => set({ width })}
+        />
+      </Field>
+      <Field label="Height">
+        <NumberInput
+          value={p.height}
+          min={0.01}
+          step={0.05}
+          unit="m"
+          onChange={(height: number) => set({ height })}
+        />
+      </Field>
+      <Range
+        label="Opacity"
+        value={p.opacity ?? 1}
+        min={0.05}
+        max={1}
+        step={0.05}
+        onChange={(opacity) => set({ opacity })}
+      />
+      <Toggle
+        value={p.doubleSided ?? true}
+        onChange={(doubleSided: boolean) => set({ doubleSided })}
+        label="Seen from behind too"
+      />
+      <Text small muted>
+        A reference photo: drawn here only, never collides, and is left out of the export.
+      </Text>
+    </>
+  );
+}
+
 function LightEditor({ item }: { item: Extract<Item, { kind: "light" }> }) {
   const p = item.params;
   const set = (change: Partial<LightParams>) =>
@@ -1409,7 +1454,8 @@ export function Inspector({ assets }: { assets: MeshAsset[] }) {
       {item.kind === "hole" && <HoleEditor item={item} />}
       {item.kind === "apriltag" && <AprilTagEditor item={item} />}
       {item.kind === "light" && <LightEditor item={item} />}
-      {item.kind !== "hole" && item.kind !== "apriltag" && item.kind !== "light" && (
+      {item.kind === "image" && <ImageEditor item={item} />}
+      {!["hole", "apriltag", "light", "image"].includes(item.kind) && (
         <>
           <p style={heading}>Motion</p>
           <MoverEditor item={item} />

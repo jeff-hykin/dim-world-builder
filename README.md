@@ -54,6 +54,11 @@ Agents: every action is an endpoint (`dimos.yaml`); `deno run -A tools/dwb.ts --
 `dwb check` reports clipping (edits, generate and export return the same warnings). Example built
 that way: [tools/examples/office_555.ts](tools/examples/office_555.ts).
 
+Reference photos: `POST api/images` (a JPEG/PNG body) returns `{ id, src }`; an item of kind `image`
+(`params: { src, width, height, opacity?, doubleSided? }`) shows it on a plane in the item's local
+y-z, centered on its position, facing +x. It is visual only: no collision, not in the clip check,
+left out of the export. `GET api/selection` is what the user has selected in the page used last.
+
 ## Develop
 
 ```sh
