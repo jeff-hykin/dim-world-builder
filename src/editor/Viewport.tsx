@@ -90,6 +90,17 @@ export function Viewport({ assets }: { assets: Record<string, MeshAsset> }) {
         controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
         controls.screenSpacePanning = false;
         exposeForAutomation(viewer);
+        // a resize (dragging a side panel's edge) clears the canvas and the view only redraws next frame: draw now,
+        // before the page paints, so it doesn't flash (this observer runs after the viewer's own, which resized it)
+        const host = viewer.canvas.parentElement;
+        if (host) {
+          const redraw = new ResizeObserver(() => {
+            if (!viewer.canvas.isConnected) return redraw.disconnect();
+            viewer.renderer?.render(viewer.scene, viewer.camera);
+            viewer.requestRender();
+          });
+          redraw.observe(host);
+        }
       }}
     >
       <Lighting />
