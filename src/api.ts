@@ -1,5 +1,6 @@
 // The app's own server (backend/main.ts), through relative URLs (Desktop serves the page at /apps/<name>/).
 import type { Item, MeshAsset, Project, Vec3 } from "./world/types.ts";
+import { packageName } from "./world/keys.ts";
 
 export async function json<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -20,14 +21,44 @@ const send = <T>(method: string, url: string, body: unknown) =>
 export const library = () => json<MeshAsset[]>("api/library");
 
 export const listProjects = () => json<{ projects: string[] }>("api/projects");
-export const loadProject = (name: string) =>
-  json<Project>(`api/internal/projects/${encodeURIComponent(name)}`);
-export const saveProject = (project: Project) =>
-  send<{ saved: string; alsoSaved?: string }>(
-    "PUT",
-    `api/internal/projects/${encodeURIComponent(project.name)}`,
-    project,
+// the saved version each world was last loaded or saved at here: a save names it, so the backend can merge in changes made since
+const baseVersions = new Map<string, string>();
+
+export async function loadProject(name: string): Promise<Project> {
+  const response = await fetch(`api/internal/projects/${encodeURIComponent(name)}`);
+  const body = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(body?.error ?? `${response.status} ${response.statusText}`);
+  baseVersions.set(packageName(name), response.headers.get("x-world-version") ?? "");
+  return body as Project;
+}
+
+export interface SaveResult {
+  saved: string;
+  alsoSaved?: string;
+  version: string;
+  /** the world changed since this page's version: the backend merged this page's edits into it; this is the result */
+  merged?: Project;
+}
+/** saves the page's world; throws a SaveConflict when it changed elsewhere and can't be merged */
+export async function saveProject(project: Project): Promise<SaveResult> {
+  const name = packageName(project.name);
+  const base = baseVersions.get(name);
+  const query = base === undefined ? "" : `?base=${encodeURIComponent(base)}`;
+  const response = await fetch(
+    `api/internal/projects/${encodeURIComponent(project.name)}${query}`,
+    {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(project),
+    },
   );
+  const body = await response.json().catch(() => null);
+  if (response.status === 409) throw new SaveConflict(body?.error ?? "changed elsewhere");
+  if (!response.ok) throw new Error(body?.error ?? `${response.status} ${response.statusText}`);
+  baseVersions.set(name, body.version);
+  return body as SaveResult;
+}
+export class SaveConflict extends Error {}
 
 /** write the project to a .json anywhere (a folder: <name>.json in it); later saves go there too */
 export const saveAs = (project: Project, path: string) =>

@@ -431,3 +431,25 @@ describe("image items", () => {
     expect(toScene(world, "photo").xml).not.toMatch(/<geom[^>]*photo/i);
   });
 });
+
+describe("mergeEdits", () => {
+  it("keeps an API change to items the page didn't touch, and takes the page's own edits", async () => {
+    const { mergeEdits } = await import("./merge.ts");
+    const base = emptyProject("m");
+    const item = (id: string, x: number) => ({
+      ...makeItem("primitive", { shape: "box", color: [1, 1, 1] }, {
+        name: id,
+        floor: "ground",
+        position: [x, 0, 0] as Vec3,
+      }),
+      id,
+      key: id,
+    });
+    base.items = [item("a", 0), item("b", 0), item("c", 0)];
+    // the API moved a and b; the page (from base) moved b, removed c and added d
+    const current = { ...base, items: [item("a", 5), item("b", 5), item("c", 0)] };
+    const page = { ...base, name: "m", items: [item("a", 0), item("b", 9), item("d", 1)] };
+    const merged = mergeEdits(base, page, current);
+    expect(merged.items.map((i) => [i.id, i.position[0]])).toEqual([["a", 5], ["b", 9], ["d", 1]]);
+  });
+});

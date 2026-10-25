@@ -277,6 +277,23 @@ provides:
                                     seconds:
                                         type: number
                                         description: how long they blink (default 3, at most 30)
+        /api/pages/reload:
+            post:
+                description: >-
+                    Reload every open World Builder page (a full page reload, e.g. to pick up a new build of the app), or
+                    only the pages showing one world. A page saves its unsaved edits first; a page whose edits could not
+                    be saved (it shows the user a notice) is left alone. Returns { sent } (false when Desktop could not be
+                    reached)
+                x-when: you want open World Builder pages to reload, after updating the app or when one looks stale
+                requestBody:
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    world:
+                                        type: string
+                                        description: only the pages showing this world (default every page)
         /api/selection:
             get:
                 description: >-

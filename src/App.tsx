@@ -122,17 +122,18 @@ export function App() {
     }
   }, { topic: "changed" });
 
+  // POST api/pages/reload: a full reload (a new build), after saving what's unsaved; a refused save keeps the page as is
+  useBackendEvents((event: { world?: string }) => {
+    if (event?.world && event.world !== packageName(getState().project.name)) return;
+    if (autosaveHeld) return;
+    if (getState().revision === savedRevision) location.reload();
+    else save(false).finally(() => !autosaveHeld && location.reload());
+  }, { topic: "reload" });
+
   // autosave: the project file in the app's data folder, a moment after the last change
   useEffect(() => {
     if (revision === 0 || autosaveHeld) return;
-    const timer = setTimeout(() => {
-      // a change from elsewhere may have arrived while this waited
-      if (autosaveHeld) return;
-      const { project, revision } = getState();
-      api.saveProject(project).then(() => (savedRevision = Math.max(savedRevision, revision)))
-        .catch(() => {});
-      localStorageSet("dim-world-builder.project", project.name);
-    }, 800);
+    const timer = setTimeout(() => save(false), 800);
     return () => clearTimeout(timer);
   }, [revision]);
 
@@ -407,7 +408,7 @@ function openSaved(name: string) {
 
 // the revision last saved (or loaded): a newer one means edits not yet on the server
 let savedRevision = 0;
-// a change from elsewhere met unsaved edits here: don't autosave over it until the user picks
+// a save was refused (the world changed elsewhere and couldn't be merged): no autosave until the user picks
 let autosaveHeld = false;
 
 function loadSaved(project: Project) {
@@ -416,48 +417,76 @@ function loadSaved(project: Project) {
   autosaveHeld = false;
 }
 
-/** the open world was changed through the API: take it live, unless that would drop unsaved edits (then ask) */
-function changedElsewhere(name: string) {
-  const take = () =>
-    api.loadProject(name).then((project) => {
-      refreshProject(project);
+/** take the saved world as it is now (keeping the view and the selection) */
+function pullLatest(name: string) {
+  return api.loadProject(name).then((project) => {
+    refreshProject(project);
+    savedRevision = getState().revision;
+    autosaveHeld = false;
+  }).catch((e) => toast({ title: "Update", message: `${name}: ${e}`, tone: "danger" }));
+}
+
+/**
+ * Saves the page's world. The backend knows which version this page started from: if the world changed since (an
+ * agent's edit), it keeps those changes and applies only the items this page changed, and the page takes the result.
+ */
+function save(announce: boolean) {
+  const { project, revision } = getState();
+  localStorageSet("dim-world-builder.project", project.name);
+  return api.saveProject(project).then((r) => {
+    savedRevision = Math.max(savedRevision, revision);
+    autosaveHeld = false;
+    // edits made while it saved go out with the next save (and its merge)
+    if (r.merged && getState().revision === revision) {
+      refreshProject(r.merged);
       savedRevision = getState().revision;
-      autosaveHeld = false;
+    }
+    if (r.merged) {
       toast({
         id: "changed-elsewhere",
-        title: "Updated",
-        message: `${name} changed outside this page`,
+        title: "Merged",
+        message: `${packageName(project.name)} had changed elsewhere: your edits were added to it`,
       });
-    }).catch((e) => toast({ title: "Update", message: `${name}: ${e}`, tone: "danger" }));
-  if (getState().revision === savedRevision && !autosaveHeld) {
-    take();
+    }
+    if (announce) {
+      toast({
+        title: "Saved",
+        message: r.alsoSaved ? `${project.name} → ${r.alsoSaved}` : project.name,
+        tone: "ok",
+      });
+    }
+  }).catch((e) => {
+    if (!(e instanceof api.SaveConflict)) {
+      if (announce) toast({ title: "Save failed", message: String(e), tone: "danger" });
+      return;
+    }
+    autosaveHeld = true;
+    const name = packageName(project.name);
+    toast({
+      id: "changed-elsewhere",
+      title: "Changed outside this page",
+      message:
+        `${name} was changed elsewhere and your unsaved edits couldn't be merged into it. They're kept here, unsaved: load the new version (dropping them), or Save as… to keep yours elsewhere.`,
+      tone: "warn",
+      durationMs: 0,
+      action: { label: "Load new version", onClick: () => pullLatest(name) },
+    });
+  });
+}
+
+/** the open world was changed through the API: take it live; with unsaved edits here, save them now (merged into it) */
+function changedElsewhere(name: string) {
+  if (autosaveHeld) return;
+  if (getState().revision === savedRevision) {
+    pullLatest(name);
     return;
   }
-  autosaveHeld = true;
-  toast({
-    id: "changed-elsewhere",
-    title: "Changed outside this page",
-    message:
-      `${name} was changed (by an agent?) while you had unsaved edits. They're kept here, unsaved: load the new version, or Save to keep yours over it.`,
-    tone: "warn",
-    durationMs: 0,
-    action: { label: "Load new version", onClick: take },
-  });
+  save(false);
 }
 
 /** save right away (autosave also does, a moment after each change); says where it went */
 function saveNow() {
-  const { project, revision } = getState();
-  api.saveProject(project).then((r) => {
-    savedRevision = Math.max(savedRevision, revision);
-    autosaveHeld = false;
-    localStorageSet("dim-world-builder.project", project.name);
-    toast({
-      title: "Saved",
-      message: r.alsoSaved ? `${project.name} → ${r.alsoSaved}` : project.name,
-      tone: "ok",
-    });
-  }).catch((e) => toast({ title: "Save failed", message: String(e), tone: "danger" }));
+  save(true);
 }
 
 function localStorageGet(key: string): string | null {

@@ -17,6 +17,7 @@
 //   GET  /api/project/history?name=, POST /api/project/undo   public: a world's saved versions; go back to one
 //   GET|POST /api/camera             public: the latest page's view; move the open pages' views
 //   POST /api/highlight              public: blink items in the open pages
+//   POST /api/pages/reload           public: reload the open pages (all, or those showing one world)
 //   POST /api/internal/selection     private: a page reports its world and selection (body: { world, ids, items })
 //   POST /api/internal/camera        private: a page reports its view (body: { world, eye, target, fov })
 //   GET|PUT /api/internal/projects/<name>   private: load / autosave one project
@@ -36,6 +37,7 @@ import { testCourse } from "../src/world/examples.ts";
 import { clutterYard } from "../src/world/examples_clutter.ts";
 import { playground } from "../src/world/examples_playground.ts";
 import { keyedProject, slug } from "../src/world/keys.ts";
+import { mergeEdits } from "../src/world/merge.ts";
 
 const app = JSON.parse(Deno.env.get("DIMOS_APP") ?? "{}") as {
   name?: string;
@@ -472,20 +474,56 @@ async function api(request: Request, url: URL): Promise<Response | null> {
   if (path.startsWith("/api/internal/projects/")) {
     const file = `${projectsDir}/${safeName(path.slice("/api/internal/projects/".length))}.json`;
     if (request.method === "GET") {
+      const name = safeName(path.slice("/api/internal/projects/".length));
       const project = await readJson<Project | null>(file, null);
-      return project ? json(project) : json({ error: "no such project" }, 404);
+      if (!project) return json({ error: "no such project" }, 404);
+      // the version the page edits from, sent back with its saves
+      const response = json(project);
+      response.headers.set("x-world-version", (await versions(name))[0]?.version ?? "");
+      return response;
     }
     if (request.method === "PUT") {
-      const text = JSON.stringify(await request.json(), null, 2);
+      const name = safeName(path.slice("/api/internal/projects/".length));
+      const page = await request.json() as Project;
+      const base = url.searchParams.get("base");
+      const latest = (await versions(name))[0];
+      let project = page;
+      let merged = false;
+      if (latest && base !== latest.version) {
+        // the world changed since the version this page edited: never write over that, merge the page's edits into it
+        // loaded before the world had a history ("" base): it loaded what the history kept as "before"
+        const baseVersion = base === "" ? (await versions(name)).at(-1)?.version : base;
+        const baseProject = baseVersion && (base || baseVersion.endsWith("_before"))
+          ? await readJson<Project | null>(`${historyDir(name)}/${baseVersion}.json`, null)
+          : null;
+        const current = await readJson<Project | null>(file, null);
+        if (!current || (!baseProject && (base || latest.source !== "page"))) {
+          return json({
+            error: `${name} changed since this page loaded it (${latest.source}, ${latest.at})`,
+            version: latest.version,
+          }, 409);
+        }
+        // a page from before versions existed, after only page saves: as before, the page's world is the world
+        if (baseProject) {
+          project = mergeEdits(baseProject, page, current);
+          merged = true;
+        }
+      }
+      const text = JSON.stringify(project, null, 2);
       await Deno.mkdir(projectsDir, { recursive: true });
       const before = await Deno.readTextFile(file).catch(() => null);
       await Deno.writeTextFile(file, text);
-      await remember(safeName(path.slice("/api/internal/projects/".length)), text, "page", before);
-      const linked = (await linkedFiles())[
-        safeName(path.slice("/api/internal/projects/".length))
-      ];
+      await remember(name, text, "page", before);
+      const linked = (await linkedFiles())[name];
       if (linked) await Deno.writeTextFile(linked, text);
-      return json({ saved: file, ...(linked ? { alsoSaved: linked } : {}) });
+      // other pages showing it take the merge too
+      if (merged) await tellPages("changed", { name });
+      return json({
+        saved: file,
+        version: (await versions(name))[0]?.version ?? "",
+        ...(merged ? { merged: project } : {}),
+        ...(linked ? { alsoSaved: linked } : {}),
+      });
     }
   }
   if (route === "POST /api/open") {
@@ -734,6 +772,12 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     }
     return json({ sent: await tellPages("camera", body) });
   }
+  if (route === "POST /api/pages/reload") {
+    const body = await request.json().catch(() => ({})) as { world?: string };
+    return json({
+      sent: await tellPages("reload", body.world ? { world: safeName(body.world) } : {}),
+    });
+  }
   if (route === "POST /api/highlight") {
     const body = await request.json() as { ids?: string[]; seconds?: number };
     if (!Array.isArray(body.ids) || !body.ids.length) return json({ error: "give ids" }, 400);
@@ -958,11 +1002,18 @@ async function file(dir: string, path: string): Promise<Response> {
   }
 }
 
+// changes to saved worlds run one at a time: a read-change-write never interleaves with another (a page's autosave)
+let writing: Promise<unknown> = Promise.resolve();
+const changesWorlds =
+  /^(PUT|POST|PATCH|DELETE) \/api\/(internal\/projects\/|project\b|views\b|generate$|open$|internal\/save-as$)/;
+
 async function serve(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const path = url.pathname;
   try {
-    const answer = await api(request, url);
+    const answer = changesWorlds.test(`${request.method} ${path}`)
+      ? await (writing = writing.catch(() => {}).then(() => api(request, url))) as Response | null
+      : await api(request, url);
     if (answer) return answer;
     if (path.startsWith("/files/library/")) {
       return await file(libraryDir, path.slice("/files/library/".length));
