@@ -204,6 +204,8 @@ interface ItemBase {
   mover?: MoverPath;
   /** the group it belongs to (Project.groups): its members are selected, moved and turned together */
   group?: string;
+  /** free-text comments about it, from people or agents (where it came from, what to fix) */
+  notes?: string;
 }
 
 /** items bundled to move as one (the members carry its id; the export still writes each member) */

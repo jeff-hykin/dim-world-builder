@@ -51,7 +51,7 @@ import { makeItem } from "../world/defaults.ts";
 /** keep the tag tool on after a placement (one tag per click) */
 const setNavToolTag = () => setNavTool("tag");
 import { themeColor } from "./theme_color.ts";
-import { view } from "./palette.ts";
+import { cameraListeners, view } from "./palette.ts";
 
 const SNAP = { translate: 0.1, rotate: Math.PI / 12, scale: 0.05 };
 
@@ -70,6 +70,7 @@ export function Viewport({ assets }: { assets: Record<string, MeshAsset> }) {
         const track = () => {
           const t = viewer.controls.target;
           view.center = [t.x, t.y, 0];
+          cameraListeners.forEach((listener) => listener());
         };
         viewer.controls.addEventListener("change", track);
         track();
@@ -103,6 +104,12 @@ export function Viewport({ assets }: { assets: Record<string, MeshAsset> }) {
   );
 }
 
+/** an item's drawn object, by its id or readable key */
+function drawnItem(idOrKey: string): THREE.Object3D | undefined {
+  const item = getState().project.items.find((i) => i.id === idOrKey || i.key === idOrKey);
+  return item && view.worldRoot?.children.find((o) => o.userData.itemId === item.id);
+}
+
 /**
  * `window.dimWorldBuilder`: where things are on screen, for scripted demos and UI tests (page coordinates), and a way
  * to aim the camera. Read-only for the project: edits still go through the UI.
@@ -130,6 +137,34 @@ function exposeForAutomation(viewer: {
     }),
     goTo: (eye, target, fov) =>
       glideTo(viewer, new THREE.Vector3(...eye), new THREE.Vector3(...target), fov),
+    frame(idOrKey) {
+      const object = drawnItem(idOrKey);
+      if (!object) return false;
+      const bounds = new THREE.Box3().setFromObject(object);
+      glide(
+        viewer as unknown as Parameters<typeof glide>[0],
+        bounds.getCenter(new THREE.Vector3()),
+        Math.max(2.5, bounds.getSize(new THREE.Vector3()).length() * 1.6),
+      );
+      return true;
+    },
+    blink(idsOrKeys, seconds) {
+      // each item's object is found again every tick: the world layer rebuilds them on every edit
+      const ids = idsOrKeys.map((ref) =>
+        getState().project.items.find((i) => i.id === ref || i.key === ref)?.id
+      ).filter((id): id is string => Boolean(id));
+      const objects = () =>
+        view.worldRoot?.children.filter((o) => ids.includes(o.userData.itemId as string)) ?? [];
+      const started = performance.now();
+      const tick = () => {
+        const on = performance.now() - started >= seconds * 1000;
+        const shown = on || Math.floor((performance.now() - started) / 250) % 2 === 0;
+        for (const object of objects()) object.visible = shown;
+        viewer.requestRender();
+        if (!on) setTimeout(tick, 125);
+      };
+      tick();
+    },
   };
   Object.assign(globalThis, {
     dimWorldBuilder: {

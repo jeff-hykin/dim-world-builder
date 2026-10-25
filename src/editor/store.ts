@@ -175,6 +175,24 @@ export function loadProject(loaded: Project) {
     future: [],
     drawingPath: null,
     revision: state.revision + 1,
+    opened: state.opened + 1,
+  });
+}
+
+/** the open world changed elsewhere (an agent, through the API): take its version as one undoable step, keeping the view and what's still selected */
+export function refreshProject(loaded: Project) {
+  coalesceKey = null;
+  const project = withAnnotations(keyedProject(loaded));
+  const ids = new Set(project.items.map((i) => i.id));
+  const selection = state.selection.filter((id) => ids.has(id));
+  set({
+    project,
+    selected: state.selected && ids.has(state.selected) ? state.selected : selection.at(-1) ?? null,
+    selection,
+    drawingPath: state.drawingPath && ids.has(state.drawingPath) ? state.drawingPath : null,
+    past: [...state.past.slice(-99), state.project],
+    future: [],
+    revision: state.revision + 1,
   });
 }
 

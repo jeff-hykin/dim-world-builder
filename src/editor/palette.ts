@@ -30,7 +30,14 @@ export interface PaletteEntry {
 export interface CameraHandle {
   get(): { eye: Vec3; target: Vec3; fov: number };
   goTo(eye: Vec3, target: Vec3, fov?: number): void;
+  /** glide to an item (by id or key), framing it; false if it isn't drawn */
+  frame(idOrKey: string): boolean;
+  /** blink items (by id or key) for a few seconds, to point them out */
+  blink(idsOrKeys: string[], seconds: number): void;
 }
+
+/** called whenever the camera moves (orbit, pan, zoom, glide) */
+export const cameraListeners = new Set<() => void>();
 
 /** the ground point the camera orbits, the drawn world and the camera, set by the viewport */
 export const view: {

@@ -3,18 +3,14 @@
 
 import { buildWorld } from "../src/world/geometry.ts";
 import { toScene } from "../src/world/mjcf.ts";
-import { keyedProject } from "../src/world/keys.ts";
+import { keyedProject, packageName } from "../src/world/keys.ts";
 import { exportAnnotations, withAnnotations } from "../src/world/annotations.ts";
 import type { MeshAsset, Project } from "../src/world/types.ts";
 
-/** a Python package name: lower snake case, not starting with a digit */
 /** scene.json extensions key for this app's data (views, project) */
 export const EXTENSION = "dim_world_builder";
 
-export function packageName(name: string): string {
-  const snake = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return /^[a-z]/.test(snake) ? snake : `world_${snake || "untitled"}`;
-}
+export { packageName };
 
 export interface ExportResult {
   dir: string;

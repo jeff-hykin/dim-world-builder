@@ -16,6 +16,7 @@ import {
   Segmented,
   Slider,
   Text,
+  TextArea,
   TextInput,
   Tile,
   TileGrid,
@@ -1461,6 +1462,14 @@ export function Inspector({ assets }: { assets: MeshAsset[] }) {
           <MoverEditor item={item} />
         </>
       )}
+      <Field label="Notes" hint="comments for people and agents (GET api/selection includes them)">
+        <TextArea
+          value={item.notes ?? ""}
+          rows={2}
+          aria-label="Notes"
+          onChange={(notes: string) => update({ notes: notes || undefined }, "notes")}
+        />
+      </Field>
       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
         <Button size="sm" icon="copy" onClick={() => duplicateItem(item.id)}>Duplicate</Button>
         <Button size="sm" icon="trash" variant="danger" onClick={() => removeItem(item.id)}>

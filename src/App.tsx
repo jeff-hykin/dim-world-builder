@@ -27,7 +27,8 @@ import { emptyProject } from "./world/defaults.ts";
 import { testCourse } from "./world/examples.ts";
 import { clutterYard } from "./world/examples_clutter.ts";
 import { office555 } from "./world/examples_office.ts";
-import type { MeshAsset } from "./world/types.ts";
+import type { MeshAsset, Project, Vec3 } from "./world/types.ts";
+import { packageName } from "./world/keys.ts";
 import {
   BuildersPanel,
   Inspector,
@@ -48,6 +49,7 @@ import {
   loadProject,
   openMenu,
   redo,
+  refreshProject,
   removeItem,
   removeSelection,
   renameKey,
@@ -69,7 +71,7 @@ import {
   useMenu,
 } from "./editor/store.ts";
 import { makeItem } from "./world/defaults.ts";
-import { view } from "./editor/palette.ts";
+import { cameraListeners, view } from "./editor/palette.ts";
 
 type Tab = "shapes" | "items" | "builders" | "scene" | "nav" | "views";
 
@@ -105,7 +107,7 @@ export function App() {
       return;
     }
     const last = localStorageGet("dim-world-builder.project");
-    if (last) api.loadProject(last).then(loadProject).catch(() => {});
+    if (last) api.loadProject(last).then(loadSaved).catch(() => {});
   }, [refreshAssets]);
 
   // POST api/open (an agent, or this page's own Open dialog) announces the world to switch to
@@ -113,17 +115,42 @@ export function App() {
     if (event?.name) openSaved(event.name);
   }, { topic: "open" });
 
+  // the API changed a saved world: if it's this one, show the change live
+  useBackendEvents((event: { name?: string }) => {
+    if (event?.name && event.name === packageName(getState().project.name)) {
+      changedElsewhere(event.name);
+    }
+  }, { topic: "changed" });
+
   // autosave: the project file in the app's data folder, a moment after the last change
   useEffect(() => {
-    if (revision === 0) return;
+    if (revision === 0 || autosaveHeld) return;
     const timer = setTimeout(() => {
-      api.saveProject(getState().project).catch(() => {});
-      localStorageSet("dim-world-builder.project", getState().project.name);
+      // a change from elsewhere may have arrived while this waited
+      if (autosaveHeld) return;
+      const { project, revision } = getState();
+      api.saveProject(project).then(() => (savedRevision = Math.max(savedRevision, revision)))
+        .catch(() => {});
+      localStorageSet("dim-world-builder.project", project.name);
     }, 800);
     return () => clearTimeout(timer);
   }, [revision]);
 
   useSelectionReport();
+  useCameraReport();
+  // POST api/camera: an agent moves the view (of the pages in front)
+  useBackendEvents((event: { position?: Vec3; target?: Vec3; fov?: number; item_id?: string }) => {
+    if (document.visibilityState !== "visible" || !view.camera) return;
+    if (event?.item_id && view.camera.frame(event.item_id)) return;
+    const now = view.camera.get();
+    if (event?.position || event?.target) {
+      view.camera.goTo(event.position ?? now.eye, event.target ?? now.target, event.fov ?? now.fov);
+    }
+  }, { topic: "camera" });
+  // POST api/highlight: an agent points at items
+  useBackendEvents((event: { ids?: string[]; seconds?: number }) => {
+    if (event?.ids?.length) view.camera?.blink(event.ids, event.seconds ?? 3);
+  }, { topic: "highlight" });
   useKeyboard();
   const phone = usePhone();
   const [sheet, setSheet] = useState<"tools" | "inspector" | null>(null);
@@ -373,15 +400,57 @@ let lastOpened = { name: "", at: 0 };
 function openSaved(name: string) {
   if (name === lastOpened.name && Date.now() - lastOpened.at < 3000) return;
   lastOpened = { name, at: Date.now() };
-  api.loadProject(name).then(loadProject).catch((e) =>
+  api.loadProject(name).then(loadSaved).catch((e) =>
     toast({ title: "Open", message: `${name}: ${e}`, tone: "danger" })
   );
 }
 
+// the revision last saved (or loaded): a newer one means edits not yet on the server
+let savedRevision = 0;
+// a change from elsewhere met unsaved edits here: don't autosave over it until the user picks
+let autosaveHeld = false;
+
+function loadSaved(project: Project) {
+  loadProject(project);
+  savedRevision = getState().revision;
+  autosaveHeld = false;
+}
+
+/** the open world was changed through the API: take it live, unless that would drop unsaved edits (then ask) */
+function changedElsewhere(name: string) {
+  const take = () =>
+    api.loadProject(name).then((project) => {
+      refreshProject(project);
+      savedRevision = getState().revision;
+      autosaveHeld = false;
+      toast({
+        id: "changed-elsewhere",
+        title: "Updated",
+        message: `${name} changed outside this page`,
+      });
+    }).catch((e) => toast({ title: "Update", message: `${name}: ${e}`, tone: "danger" }));
+  if (getState().revision === savedRevision && !autosaveHeld) {
+    take();
+    return;
+  }
+  autosaveHeld = true;
+  toast({
+    id: "changed-elsewhere",
+    title: "Changed outside this page",
+    message:
+      `${name} was changed (by an agent?) while you had unsaved edits. They're kept here, unsaved: load the new version, or Save to keep yours over it.`,
+    tone: "warn",
+    durationMs: 0,
+    action: { label: "Load new version", onClick: take },
+  });
+}
+
 /** save right away (autosave also does, a moment after each change); says where it went */
 function saveNow() {
-  const project = getState().project;
+  const { project, revision } = getState();
   api.saveProject(project).then((r) => {
+    savedRevision = Math.max(savedRevision, revision);
+    autosaveHeld = false;
     localStorageSet("dim-world-builder.project", project.name);
     toast({
       title: "Saved",
@@ -1085,6 +1154,38 @@ function useSelectionReport() {
       clearTimeout(timer);
       removeEventListener("focus", front);
       document.removeEventListener("visibilitychange", front);
+    };
+  }, []);
+}
+
+/** reports this page's view to the backend (GET api/camera) as it moves; one report in flight, the latest wins */
+function useCameraReport() {
+  useEffect(() => {
+    let busy = false;
+    let again = false;
+    const report = () => {
+      if (document.visibilityState !== "visible" || !view.camera) return;
+      if (busy) {
+        again = true;
+        return;
+      }
+      busy = true;
+      const { eye, target, fov } = view.camera.get();
+      api.reportCamera(getState().project.name, eye, target, fov).catch(() => {}).finally(() => {
+        busy = false;
+        if (again) {
+          again = false;
+          report();
+        }
+      });
+    };
+    cameraListeners.add(report);
+    addEventListener("focus", report);
+    document.addEventListener("visibilitychange", report);
+    return () => {
+      cameraListeners.delete(report);
+      removeEventListener("focus", report);
+      document.removeEventListener("visibilitychange", report);
     };
   }, []);
 }

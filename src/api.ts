@@ -1,5 +1,5 @@
 // The app's own server (backend/main.ts), through relative URLs (Desktop serves the page at /apps/<name>/).
-import type { Item, MeshAsset, Project } from "./world/types.ts";
+import type { Item, MeshAsset, Project, Vec3 } from "./world/types.ts";
 
 export async function json<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -99,3 +99,7 @@ export const checkClips = (project: Project) =>
 /** this page's world and selection, for agents (GET api/selection answers with the latest page's) */
 export const reportSelection = (world: string, ids: string[], items: Item[]) =>
   send<{ selected: number }>("POST", "api/internal/selection", { world, ids, items });
+
+/** this page's view, for agents (GET api/camera answers with the latest page's) */
+export const reportCamera = (world: string, eye: Vec3, target: Vec3, fov: number) =>
+  send<{ ok: boolean }>("POST", "api/internal/camera", { world, eye, target, fov });

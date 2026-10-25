@@ -9,6 +9,12 @@ export function slug(text: string): string {
   return /^[a-z]/.test(s) ? s : `item_${s}`;
 }
 
+/** a world's saved name and Python package name: lower snake case, not starting with a digit */
+export function packageName(name: string): string {
+  const snake = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return /^[a-z]/.test(snake) ? snake : `world_${snake || "untitled"}`;
+}
+
 /** what an item is, for its default id: the mesh's or shape's name, or its kind */
 function base(item: Item): string {
   if (item.kind === "primitive") return slug(item.params.shape);

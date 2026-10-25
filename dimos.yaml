@@ -119,7 +119,8 @@ provides:
                         description: the world's name
             post:
                 description: >-
-                    Save (create or replace) a world project under its name (snake_cased). Returns { saved: name, items: count
+                    Save (create or replace) a world project under its name (snake_cased); open pages showing it update
+                    live (a page with unsaved edits asks first). Returns { saved: name, items: count
                     }; 400 if the project is not dim-world-builder.project.v1
                 x-when: you want to save a whole world you built or edited yourself
                 requestBody:
@@ -136,7 +137,8 @@ provides:
                 description: >-
                     Add items to a saved world. Each item: kind (primitive|mesh|room|stairs|hill|hole|apriltag|light|image),
                     params, and optionally name, floor (default the active floor), position [x,y,z], rotation [x,y,z,w],
-                    scale, mover. An image item is a reference photo, visual only (never collides, not exported, not in the
+                    scale, mover, notes (free-text comments shown in the item's panel). Open pages show the new items live.
+                    An image item is a reference photo, visual only (never collides, not exported, not in the
                     clip check): params { src (from POST /api/images), width, height (meters), opacity? (0-1, default 1),
                     doubleSided? (default true) }; the picture lies in the item's local y-z plane centered on position (its
                     center, not its base), facing local +x, with +y its right and +z its top as seen from in front. Returns
@@ -154,12 +156,133 @@ provides:
                                     items:
                                         type: array
                                         description: the items to add
+            patch:
+                description: >-
+                    Change items of a saved world in place. Each entry names an item by id (or key) and gives the fields to
+                    change: name, key, floor, position [x,y,z], rotation [x,y,z,w], scale, mover, notes, and params (merged
+                    into the item's params, so { params: { width: 2 } } changes only the width). Open pages show it live.
+                    Returns { updated: count, missing: [ids not found], items: count, warnings }; warnings lists items that
+                    now clip into each other
+                x-when: you want to move, resize, rename, retune or annotate items already in a world
+                requestBody:
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    name:
+                                        type: string
+                                        description: the world's name
+                                    items:
+                                        type: array
+                                        description: '[{ id (or key), ...fields to change }]'
+            delete:
+                description: >-
+                    Remove items from a saved world by id (or key). Open pages show it live. Returns { removed: count,
+                    items: count left }
+                x-when: you want to remove items from a world
+                requestBody:
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    name:
+                                        type: string
+                                        description: the world's name
+                                    ids:
+                                        type: array
+                                        description: item ids or keys
+        /api/project/history:
+            get:
+                description: >-
+                    A saved world's last 50 saved versions, newest first, as { name, versions: [{ version, at (ISO time),
+                    source (api: an agent's change; page: the user's edits; undo; before: the world as it was before its
+                    history began), items: count }] }. The newest is the world as saved now
+                x-when: you need to see how a world changed, or pick a version to go back to
+                x-dimos-role: context
+                parameters:
+                    -   name: name
+                        in: query
+                        schema:
+                            type: string
+                        description: the world's name
+        /api/project/undo:
+            post:
+                description: >-
+                    Put a saved world back the way it was: to the version before the newest (undoing the last change,
+                    whoever made it), or to a given version from GET /api/project/history. The restore is itself a new
+                    version, so undoing twice in a row redoes. Open pages show it live. Returns { restored: version, at,
+                    items: count }; 404 when there is nothing to go back to
+                x-when: you want to revert a change to a world (yours or the user's)
+                requestBody:
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    name:
+                                        type: string
+                                        description: the world's name
+                                    version:
+                                        type: string
+                                        description: a version from GET /api/project/history (default the one before the newest)
+        /api/camera:
+            get:
+                description: >-
+                    Where the user is looking in World Builder (the page whose view moved last), as { world, position
+                    [x,y,z], target [x,y,z] (the point it orbits and looks at), fov (vertical degrees), updatedAt }, in
+                    world meters (z up); 404 until a page has reported one
+                x-when: you need to know what part of the world the user is looking at
+                x-dimos-role: context
+            post:
+                description: >-
+                    Move the view of the World Builder pages in front of the user: glide to position looking at target
+                    (either may be left out to keep the current one), or frame an item (item_id: its id or key). Returns {
+                    sent } (false when Desktop could not be reached)
+                x-when: you want to show the user something in the world they have open
+                requestBody:
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    position:
+                                        type: array
+                                        description: the camera's position [x,y,z], meters
+                                    target:
+                                        type: array
+                                        description: the point to look at [x,y,z], meters
+                                    fov:
+                                        type: number
+                                        description: vertical field of view, degrees (optional)
+                                    item_id:
+                                        type: string
+                                        description: an item's id or key to frame instead of position/target
+        /api/highlight:
+            post:
+                description: >-
+                    Make items blink in every open World Builder page for a few seconds, to point them out to the user
+                    ("this one?"). Returns { sent } (false when Desktop could not be reached)
+                x-when: you want to point at items in the world the user has open
+                requestBody:
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                properties:
+                                    ids:
+                                        type: array
+                                        description: item ids or keys
+                                    seconds:
+                                        type: number
+                                        description: how long they blink (default 3, at most 30)
         /api/selection:
             get:
                 description: >-
                     The items the user has selected in World Builder (the page they used most recently), as { world (the
                     open world's saved name, or null), items: [{ id, key, name, kind, floor, position [x,y,z] (meters, z
-                    above its floor), rotation [x,y,z,w], scale, params }], updatedAt }; items is [] when nothing is
+                    above its floor), rotation [x,y,z,w], scale, params, notes }], updatedAt }; items is [] when nothing is
                     selected. Items are as the page has them, unsaved edits included
                 x-when: the user refers to "this", "the selected item" or "what I picked" in World Builder
                 x-dimos-role: context

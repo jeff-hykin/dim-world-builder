@@ -13,7 +13,12 @@
 //   POST /api/check                  public: items whose collision shapes interpenetrate (clips), as warnings
 //   GET  /api/selection              public: the items selected in the most recently active page
 //   POST /api/images?name=           public: store a JPEG/PNG (raw body) for image items; returns { id, src }
+//   PATCH|DELETE /api/project/items  public: change / remove items of a saved world by id (or key)
+//   GET  /api/project/history?name=, POST /api/project/undo   public: a world's saved versions; go back to one
+//   GET|POST /api/camera             public: the latest page's view; move the open pages' views
+//   POST /api/highlight              public: blink items in the open pages
 //   POST /api/internal/selection     private: a page reports its world and selection (body: { world, ids, items })
+//   POST /api/internal/camera        private: a page reports its view (body: { world, eye, target, fov })
 //   GET|PUT /api/internal/projects/<name>   private: load / autosave one project
 //   GET  /api/internal/linked        private: saved worlds that also save to a file elsewhere ({ name: path })
 //   POST /api/internal/save-as       private: write the project to a .json anywhere; later saves go there too (body: { project, path })
@@ -220,13 +225,66 @@ async function clipCheck(project: Project, tolerance = 0.02): Promise<ClipReport
 
 const safeName = (name: string) => packageName(decodeURIComponent(name));
 
-async function saveProject(unkeyed: Project) {
+/** save a world; `api` saves (agents) are also pushed to the open pages, which show them live */
+async function saveProject(unkeyed: Project, source: Source = "api") {
   const project = keyedProject(unkeyed);
+  const name = packageName(project.name);
+  const file = `${projectsDir}/${name}.json`;
+  const text = JSON.stringify(project, null, 2);
   await Deno.mkdir(projectsDir, { recursive: true });
-  await Deno.writeTextFile(
-    `${projectsDir}/${packageName(project.name)}.json`,
-    JSON.stringify(project, null, 2),
-  );
+  const before = await Deno.readTextFile(file).catch(() => null);
+  await Deno.writeTextFile(file, text);
+  await remember(name, text, source, before);
+  if (source !== "page") await tellPages("changed", { name });
+}
+
+// ── live pages: Desktop relays an event to every open World Builder page (dimos-react's useBackendEvents) ──
+
+async function tellPages(topic: string, body: unknown): Promise<boolean> {
+  const appName = encodeURIComponent(app.name ?? "dim-world-builder");
+  return await fetch(`${desktopUrl}/gateways/desktop/ui/apps/${appName}/frontend/${topic}`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(body),
+  }).then(async (r) => (await r.body?.cancel(), r.ok)).catch(() => false);
+}
+
+// ── history: the last saved versions of each world, to see and revert changes (an agent's or the page's) ──
+
+type Source = "api" | "page" | "undo";
+const HISTORY_KEEP = 50;
+const historyDir = (name: string) => `${dataDir}/history/${name}`;
+
+async function versions(name: string): Promise<{ version: string; at: string; source: string }[]> {
+  const found: string[] = [];
+  try {
+    for await (const entry of Deno.readDir(historyDir(name))) {
+      if (entry.name.endsWith(".json")) found.push(entry.name.replace(/\.json$/, ""));
+    }
+  } catch {
+    // none yet
+  }
+  // newest first; a version is <epoch ms>_<source>
+  return found.sort().reverse().map((version) => {
+    const [ms, source] = version.split("_");
+    return { version, at: new Date(Number(ms)).toISOString(), source };
+  });
+}
+
+/** keep a version (unless it's the newest one again); a world's first version also keeps what it replaced */
+async function remember(name: string, text: string, source: Source, before: string | null) {
+  await Deno.mkdir(historyDir(name), { recursive: true });
+  const kept = await versions(name);
+  const newest = kept[0] && await Deno.readTextFile(`${historyDir(name)}/${kept[0].version}.json`);
+  if (newest === text) return;
+  const now = Date.now();
+  if (!kept.length && before && before !== text) {
+    await Deno.writeTextFile(`${historyDir(name)}/${now - 1}_before.json`, before);
+  }
+  await Deno.writeTextFile(`${historyDir(name)}/${now}_${source}.json`, text);
+  for (const old of (await versions(name)).slice(HISTORY_KEEP)) {
+    await Deno.remove(`${historyDir(name)}/${old.version}.json`).catch(() => {});
+  }
 }
 
 // ── opening a world from anywhere: a project .json, an export's scene.json, or an export's folder ──
@@ -343,6 +401,11 @@ let selection: { world: string | null; ids: string[]; items: Item[]; updatedAt: 
   updatedAt: null,
 };
 
+// the camera of the page moved last: { world, position, target, fov }
+let camera:
+  | { world: string | null; position: Vec3; target: Vec3; fov: number; updatedAt: string }
+  | null = null;
+
 /** the selected items as the page has them (unsaved edits included), else as saved */
 async function selectedItems() {
   const saved = selection.world
@@ -351,8 +414,8 @@ async function selectedItems() {
   return selection.ids.flatMap((id) => {
     const item = selection.items.find((i) => i.id === id) ?? saved?.items.find((i) => i.id === id);
     if (!item) return [];
-    const { key, name, kind, floor, position, rotation, scale, params } = item;
-    return [{ id, key, name, kind, floor, position, rotation, scale, params }];
+    const { key, name, kind, floor, position, rotation, scale, params, notes } = item;
+    return [{ id, key, name, kind, floor, position, rotation, scale, params, notes }];
   });
 }
 
@@ -415,7 +478,9 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     if (request.method === "PUT") {
       const text = JSON.stringify(await request.json(), null, 2);
       await Deno.mkdir(projectsDir, { recursive: true });
+      const before = await Deno.readTextFile(file).catch(() => null);
       await Deno.writeTextFile(file, text);
+      await remember(safeName(path.slice("/api/internal/projects/".length)), text, "page", before);
       const linked = (await linkedFiles())[
         safeName(path.slice("/api/internal/projects/".length))
       ];
@@ -498,6 +563,79 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     const { warnings } = await clipCheck(project);
     return json({ added: added.map((i) => i.id), items: project.items.length, warnings });
   }
+  if (route === "PATCH /api/project/items") {
+    // change items by id (or key): the fields given replace the item's; params merge into its params
+    const { name, items } = await request.json() as { name: string; items: Partial<Item>[] };
+    const file = `${projectsDir}/${safeName(name ?? "")}.json`;
+    const project = await readJson<Project | null>(file, null);
+    if (!project) return json({ error: `no project ${name}` }, 404);
+    const missing: string[] = [];
+    let updated = 0;
+    for (const change of items ?? []) {
+      const ref = change.id ?? change.key;
+      const index = project.items.findIndex((i) => i.id === ref || i.key === ref);
+      if (index === -1) {
+        missing.push(String(ref));
+        continue;
+      }
+      const item = project.items[index];
+      const { id: _id, kind: _kind, params, ...fields } = change;
+      const next = {
+        ...item,
+        ...fields,
+        ...(params ? { params: { ...item.params, ...params } } : {}),
+      } as Item;
+      const problem = imageProblem(next);
+      if (problem) return json({ error: problem }, 400);
+      project.items[index] = next;
+      updated++;
+    }
+    if (updated) await saveProject(project);
+    const { warnings } = updated ? await clipCheck(project) : { warnings: [] };
+    return json({ updated, missing, items: project.items.length, warnings });
+  }
+  if (route === "DELETE /api/project/items") {
+    const { name, ids } = await request.json() as { name: string; ids: string[] };
+    const file = `${projectsDir}/${safeName(name ?? "")}.json`;
+    const project = await readJson<Project | null>(file, null);
+    if (!project) return json({ error: `no project ${name}` }, 404);
+    const gone = new Set(ids ?? []);
+    const before = project.items.length;
+    project.items = project.items.filter((i) => !gone.has(i.id) && !gone.has(i.key ?? ""));
+    const removed = before - project.items.length;
+    if (removed) await saveProject(project);
+    return json({ removed, items: project.items.length });
+  }
+  if (route === "GET /api/project/history") {
+    const name = safeName(url.searchParams.get("name") ?? "");
+    const list = await versions(name);
+    const counted = await Promise.all(list.map(async (v) => ({
+      ...v,
+      items: (await readJson<Project | null>(`${historyDir(name)}/${v.version}.json`, null))?.items
+        .length ?? 0,
+    })));
+    return json({ name, versions: counted });
+  }
+  if (route === "POST /api/project/undo") {
+    // back to the version before the newest, or to a given one
+    const { name, version } = await request.json() as { name: string; version?: string };
+    const saved = safeName(name ?? "");
+    const list = await versions(saved);
+    const target = version ? list.find((v) => v.version === version) : list[1];
+    if (!target) {
+      return json(
+        { error: version ? `no version ${version}` : `nothing to undo in ${saved}` },
+        404,
+      );
+    }
+    const project = await readJson<Project | null>(
+      `${historyDir(saved)}/${target.version}.json`,
+      null,
+    );
+    if (!project) return json({ error: `version ${target.version} is unreadable` }, 500);
+    await saveProject({ ...project, name: saved }, "undo");
+    return json({ restored: target.version, at: target.at, items: project.items.length });
+  }
   if (route === "POST /api/generate") {
     const { kind, name, seed } = await request.json() as {
       kind: string;
@@ -567,6 +705,40 @@ async function api(request: Request, url: URL): Promise<Response | null> {
       updatedAt: new Date().toISOString(),
     };
     return json({ selected: selection.ids.length });
+  }
+  if (route === "POST /api/internal/camera") {
+    const body = await request.json() as { world?: string; eye: Vec3; target: Vec3; fov: number };
+    camera = {
+      world: body.world ? safeName(body.world) : null,
+      position: body.eye,
+      target: body.target,
+      fov: body.fov,
+      updatedAt: new Date().toISOString(),
+    };
+    return json({ ok: true });
+  }
+  if (route === "GET /api/camera") {
+    return camera
+      ? json(camera)
+      : json({ error: "no World Builder page has reported a view yet" }, 404);
+  }
+  if (route === "POST /api/camera") {
+    const body = await request.json() as {
+      position?: Vec3;
+      target?: Vec3;
+      fov?: number;
+      item_id?: string;
+    };
+    if (!body.position && !body.target && !body.item_id) {
+      return json({ error: "give position, target and/or item_id" }, 400);
+    }
+    return json({ sent: await tellPages("camera", body) });
+  }
+  if (route === "POST /api/highlight") {
+    const body = await request.json() as { ids?: string[]; seconds?: number };
+    if (!Array.isArray(body.ids) || !body.ids.length) return json({ error: "give ids" }, 400);
+    const seconds = Math.min(30, Math.max(0.5, Number(body.seconds) || 3));
+    return json({ sent: await tellPages("highlight", { ids: body.ids.map(String), seconds }) });
   }
   if (route === "POST /api/images") {
     const bytes = new Uint8Array(await request.arrayBuffer());
@@ -725,7 +897,7 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     } catch (error) {
       return json({ error: (error as Error).message }, 400);
     }
-    await saveProject(project);
+    await saveProject(project, "page");
     const links = await linkedFiles();
     links[packageName(project.name)] = await Deno.realPath(path);
     await Deno.writeTextFile(linksFile, JSON.stringify(links, null, 2));
