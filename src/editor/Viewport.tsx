@@ -52,6 +52,7 @@ import { makeItem } from "../world/defaults.ts";
 const setNavToolTag = () => setNavTool("tag");
 import { themeColor } from "./theme_color.ts";
 import { cameraListeners, view } from "./palette.ts";
+import { PoseGizmo } from "./pose_gizmo.ts";
 
 const SNAP = { translate: 0.1, rotate: Math.PI / 12, scale: 0.05 };
 
@@ -132,6 +133,7 @@ function exposeForAutomation(viewer: {
   canvas: HTMLCanvasElement;
   scene: THREE.Scene;
   requestRender(): void;
+  setOnTop(object: THREE.Object3D, on: boolean): void;
 }) {
   const toScreen = (point: THREE.Vector3): [number, number] => {
     const rect = viewer.canvas.getBoundingClientRect();
@@ -160,19 +162,65 @@ function exposeForAutomation(viewer: {
       return true;
     },
     blink(idsOrKeys, seconds) {
-      // each item's object is found again every tick: the world layer rebuilds them on every edit
+      // a pulsing box around each item, drawn over everything, with a beam up from it so it's found from afar
       const ids = idsOrKeys.map((ref) =>
         getState().project.items.find((i) => i.id === ref || i.key === ref)?.id
       ).filter((id): id is string => Boolean(id));
-      const objects = () =>
-        view.worldRoot?.children.filter((o) => ids.includes(o.userData.itemId as string)) ?? [];
+      const color = themeColor("var(--warn)", "orange");
+      const marks = new THREE.Group();
+      const materials: (THREE.MeshBasicMaterial | THREE.LineBasicMaterial)[] = [];
+      for (const id of ids) {
+        const object = view.worldRoot?.children.find((o) => o.userData.itemId === id);
+        if (!object) continue;
+        const bounds = new THREE.Box3().setFromObject(object);
+        if (bounds.isEmpty()) bounds.setFromCenterAndSize(object.position, new THREE.Vector3());
+        const size = bounds.getSize(new THREE.Vector3()).addScalar(0.1).max(
+          new THREE.Vector3(0.3, 0.3, 0.3),
+        );
+        const center = bounds.getCenter(new THREE.Vector3());
+        const box = new THREE.BoxGeometry(size.x, size.y, size.z);
+        const line = new THREE.LineBasicMaterial({ color, depthTest: false, transparent: true });
+        const fill = new THREE.MeshBasicMaterial({
+          color,
+          depthTest: false,
+          depthWrite: false,
+          transparent: true,
+        });
+        materials.push(line, fill);
+        const edges = new THREE.LineSegments(new THREE.EdgesGeometry(box), line);
+        const shell = new THREE.Mesh(box, fill);
+        const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 4, 8), fill);
+        beam.rotation.x = Math.PI / 2;
+        beam.position.set(0, 0, size.z / 2 + 2);
+        const mark = new THREE.Group();
+        mark.position.copy(center);
+        mark.add(edges, shell, beam);
+        mark.traverse((o) => (o.raycast = () => {}));
+        marks.add(mark);
+      }
+      if (!marks.children.length) return;
+      marks.renderOrder = 999;
+      viewer.scene.add(marks);
+      viewer.setOnTop(marks, true);
       const started = performance.now();
       const tick = () => {
-        const on = performance.now() - started >= seconds * 1000;
-        const shown = on || Math.floor((performance.now() - started) / 250) % 2 === 0;
-        for (const object of objects()) object.visible = shown;
+        const t = (performance.now() - started) / 1000;
+        if (t >= seconds) {
+          marks.removeFromParent();
+          marks.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+          materials.forEach((m) => m.dispose());
+          viewer.requestRender();
+          return;
+        }
+        // two pulses a second
+        const pulse = 0.5 + 0.5 * Math.cos(t * Math.PI * 4);
+        for (const m of materials) {
+          m.opacity = m instanceof THREE.LineBasicMaterial
+            ? 0.4 + 0.6 * pulse
+            : 0.15 + 0.35 * pulse;
+        }
         viewer.requestRender();
-        if (!on) setTimeout(tick, 125);
+        requestAnimationFrame(tick);
       };
       tick();
     },
@@ -1120,6 +1168,7 @@ function Gizmo() {
   // while clicking out a path, the gizmo would swallow clicks that land on it
   const drawing = useEditor((s) => Boolean(s.drawingPath || s.navTool));
   const controlsRef = useRef<TransformControls | null>(null);
+  const poseRef = useRef<PoseGizmo | null>(null);
   // several selected: the gizmo moves this pivot, and the members follow it
   const pivot = useRef(new THREE.Object3D());
   const members = useRef<{ object: THREE.Object3D; start: THREE.Matrix4 }[]>([]);
@@ -1141,29 +1190,31 @@ function Gizmo() {
     // drawing on top moves the helper to its own layer; let the gizmo's own picking ray see every layer
     controls.getRaycaster().layers.enableAll();
     controls.addEventListener("change", () => viewer.requestRender());
-    controls.addEventListener("objectChange", () => {
-      if (extend.current && controls.object) {
-        applyExtend(controls, controls.object, extend.current, snapRef.current);
+    const onChange = (object: THREE.Object3D | undefined) => {
+      if (extend.current && object && controls.object === object) {
+        applyExtend(controls, object, extend.current, snapRef.current);
       }
-      if (controls.object !== pivot.current) return;
+      if (object !== pivot.current) return;
       pivot.current.updateMatrix();
       const delta = pivot.current.matrix.clone().multiply(pivotStart.current.clone().invert());
       for (const { object, start } of members.current) {
         delta.clone().multiply(start).decompose(object.position, object.quaternion, object.scale);
       }
-    });
-    controls.addEventListener("dragging-changed", (event) => {
-      const dragging = Boolean((event as unknown as { value: boolean }).value);
+    };
+    const onDragging = (
+      dragging: boolean,
+      object: THREE.Object3D | undefined,
+      extending: boolean,
+    ) => {
       viewer.controls.enabled = !dragging;
       (viewer as unknown as { gizmoDragging?: boolean }).gizmoDragging = dragging;
-      const object = controls.object;
       if (dragging) {
         if (object === pivot.current) {
           pivot.current.updateMatrix();
           pivotStart.current.copy(pivot.current.matrix);
           for (const m of members.current) m.object.updateMatrix(), m.start.copy(m.object.matrix);
         }
-        extend.current = object && gizmoRef.current === "extend"
+        extend.current = object && extending
           ? startExtend(
             controls,
             object,
@@ -1200,11 +1251,42 @@ function Gizmo() {
         items: p.items.map((i) => (i.id === item.id ? posedFrom(object, i) : i)),
       }), step);
       settleExtend(viewer, item.id, extended.axes, targets, step);
+    };
+    controls.addEventListener("objectChange", () => onChange(controls.object));
+    controls.addEventListener("dragging-changed", (event) =>
+      onDragging(
+        Boolean((event as unknown as { value: boolean }).value),
+        controls.object,
+        gizmoRef.current === "extend",
+      ));
+    // Move: one gizmo with thick arrows (move along an axis), squares (move in a plane) and arcs (turn about an axis)
+    const pose = new PoseGizmo(viewer.camera, viewer.canvas, pivot.current, {
+      change: () => onChange(pose.handle),
+      dragging: (dragging) => onDragging(dragging, pose.handle, false),
+      render: () => viewer.requestRender(),
     });
+    pose.scalesWithView = true;
+    pose.enabled = false;
+    viewer.scene.add(pose.object);
+    viewer.setOnTop(pose.object, true);
+    const offFrame = viewer.onFrame(() => pose.update());
+    poseRef.current = pose;
     controlsRef.current = controls;
-    (globalThis as unknown as { dimWorldBuilderGizmo?: TransformControls }).dimWorldBuilderGizmo =
-      controls;
+    // for Esc (and automation): whichever gizmo is being dragged
+    (globalThis as unknown as { dimWorldBuilderGizmo?: unknown }).dimWorldBuilderGizmo = {
+      get dragging() {
+        return controls.dragging || pose.dragging;
+      },
+      reset: () => (pose.dragging ? pose.cancel() : controls.reset()),
+      pointerUp: (p: { button: number }) =>
+        controls.dragging && controls.pointerUp(p as Parameters<TransformControls["pointerUp"]>[0]),
+      controls,
+      pose,
+    };
     return () => {
+      offFrame();
+      pose.dispose();
+      poseRef.current = null;
       controls.detach();
       viewer.scene.remove(helper);
       viewer.scene.remove(pivot.current);
@@ -1215,8 +1297,12 @@ function Gizmo() {
 
   useEffect(() => {
     const controls = controlsRef.current;
-    if (!controls || !viewer) return;
+    const pose = poseRef.current;
+    if (!controls || !pose || !viewer) return;
     controls.setMode(gizmo === "extend" ? "scale" : gizmo);
+    pose.snap = snap
+      ? { distance: SNAP.translate, angle: SNAP.rotate }
+      : { distance: null, angle: null };
     // things in a world turn about the vertical: rotate is the yaw ring (exact roll/pitch stay in the inspector)
     controls.showX = gizmo !== "rotate";
     controls.showY = gizmo !== "rotate";
@@ -1228,6 +1314,17 @@ function Gizmo() {
     const find = (id: string) => world?.children.find((o) => o.userData.itemId === id);
     const target = selected ? find(selected) : undefined;
     const several = selection.map(find).filter((o): o is THREE.Object3D => Boolean(o));
+    // Move is the combined gizmo; Rotate, Scale and Extend are three's
+    const attach = (object: THREE.Object3D) => {
+      if (gizmo === "translate") {
+        controls.detach();
+        pose.handle = object;
+        pose.enabled = true;
+      } else {
+        pose.enabled = false;
+        controls.attach(object);
+      }
+    };
     if (several.length > 1 && !drawing) {
       // the pivot sits on the last-clicked one, square to the world
       const at = (target ?? several[0]).position;
@@ -1235,11 +1332,14 @@ function Gizmo() {
       pivot.current.quaternion.identity();
       pivot.current.scale.set(1, 1, 1);
       members.current = several.map((object) => ({ object, start: object.matrix.clone() }));
-      controls.attach(pivot.current);
+      attach(pivot.current);
     } else if (target && !drawing) {
       members.current = [];
-      controls.attach(target);
-    } else controls.detach();
+      attach(target);
+    } else {
+      controls.detach();
+      pose.enabled = false;
+    }
     // a crisp white outline on everything selected (nothing is added when nothing is)
     const outlined: THREE.Mesh[] = [];
     for (const object of several) {
