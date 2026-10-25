@@ -1,3 +1,4 @@
+import { saveCamera } from "./editor/saved_camera.ts";
 import { Component, type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import type { Object3D } from "three";
@@ -1200,6 +1201,7 @@ function useCameraReport() {
       }
       busy = true;
       const { eye, target, fov } = view.camera.get();
+      saveCamera(getState().project.name, { eye, target, fov });
       api.reportCamera(getState().project.name, eye, target, fov).catch(() => {}).finally(() => {
         busy = false;
         if (again) {

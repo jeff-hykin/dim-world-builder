@@ -53,6 +53,7 @@ const setNavToolTag = () => setNavTool("tag");
 import { themeColor } from "./theme_color.ts";
 import { cameraListeners, view } from "./palette.ts";
 import { PoseGizmo } from "./pose_gizmo.ts";
+import { savedCamera } from "./saved_camera.ts";
 
 const SNAP = { translate: 0.1, rotate: Math.PI / 12, scale: 0.05 };
 
@@ -659,7 +660,19 @@ function WorldLayer({ assets }: { assets: Record<string, MeshAsset> }) {
     const justOpened = framed.current !== opened;
     framed.current = opened;
     const framedBodies = world.bodies.filter((b) => b.kind !== "slab");
-    if (justOpened && framedBodies.length) {
+    // a world this browser has viewed before resumes where it was left (a reload, or reopening it)
+    const resume = justOpened ? savedCamera(getState().project.name) : null;
+    if (resume) {
+      const place = () => {
+        live.viewer.controls.target.set(...resume.target);
+        live.viewer.camera.position.set(...resume.eye);
+        live.viewer.controls.update();
+        live.viewer.requestRender();
+      };
+      // after the scene's own first camera placement
+      place();
+      setTimeout(place, 400);
+    } else if (justOpened && framedBodies.length) {
       // the items, not the (huge) floor slabs
       const bounds = new THREE.Box3();
       for (const b of framedBodies) {
