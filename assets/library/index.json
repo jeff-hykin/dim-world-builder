@@ -5118,5 +5118,918 @@
     "license": "CC0-1.0",
     "source": "https://polyhaven.com/a/wooden_crate_01",
     "frame": "z-up"
+  },
+  {
+    "id": "sit_stand_desk",
+    "name": "Sit-Stand Desk (white)",
+    "category": "furniture",
+    "size": [
+      1.4,
+      0.7,
+      0.75
+    ],
+    "base": "assets/library/sit_stand_desk",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.93,
+          0.93,
+          0.91,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.851,
+          0.851,
+          0.832,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "mesh_office_chair",
+    "name": "Mesh Office Chair",
+    "category": "furniture",
+    "size": [
+      0.712,
+      0.6327,
+      1.2628
+    ],
+    "base": "assets/library/mesh_office_chair",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.721,
+          0.742,
+          0.762,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj",
+      "hull_13.obj",
+      "hull_14.obj",
+      "hull_15.obj",
+      "hull_16.obj",
+      "hull_17.obj",
+      "hull_18.obj",
+      "hull_19.obj",
+      "hull_20.obj",
+      "hull_21.obj",
+      "hull_22.obj",
+      "hull_23.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "papasan_chair",
+    "name": "Papasan Chair",
+    "category": "furniture",
+    "size": [
+      1.0964,
+      1.12,
+      0.8536
+    ],
+    "base": "assets/library/papasan_chair",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.742,
+          0.561,
+          0.339,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.902,
+          0.87,
+          0.781,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj",
+      "hull_13.obj",
+      "hull_14.obj",
+      "hull_15.obj",
+      "hull_16.obj",
+      "hull_17.obj",
+      "hull_18.obj",
+      "hull_19.obj",
+      "hull_20.obj",
+      "hull_21.obj",
+      "hull_22.obj",
+      "hull_23.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "rolling_whiteboard",
+    "name": "Rolling Whiteboard",
+    "category": "office",
+    "size": [
+      0.6,
+      1.29,
+      1.88
+    ],
+    "base": "assets/library/rolling_whiteboard",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.93,
+          0.93,
+          0.91,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.721,
+          0.742,
+          0.762,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "storage_bin_clear",
+    "name": "Clear Storage Bin",
+    "category": "storage",
+    "size": [
+      0.61,
+      0.41,
+      0.35
+    ],
+    "base": "assets/library/storage_bin_clear",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.821,
+          0.878,
+          0.922,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.699,
+          0.781,
+          0.838,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "equipment_case",
+    "name": "Wheeled Equipment Case",
+    "category": "storage",
+    "size": [
+      0.902,
+      0.562,
+      0.5225
+    ],
+    "base": "assets/library/equipment_case",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.549,
+          0.561,
+          0.582,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "hardshell_suitcase",
+    "name": "Hard-Shell Suitcase",
+    "category": "storage",
+    "size": [
+      0.424,
+      0.45,
+      0.7325
+    ],
+    "base": "assets/library/hardshell_suitcase",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.332,
+          0.346,
+          0.378,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.278,
+          0.295,
+          0.332,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_3.obj",
+        "rgba": [
+          0.721,
+          0.742,
+          0.762,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj",
+      "hull_13.obj",
+      "hull_14.obj",
+      "hull_15.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "bin_cart",
+    "name": "Bin Cart",
+    "category": "storage",
+    "size": [
+      0.62,
+      0.44,
+      0.55
+    ],
+    "base": "assets/library/bin_cart",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.721,
+          0.742,
+          0.762,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "sofa_module",
+    "name": "Modular Sofa Seat (sage)",
+    "category": "furniture",
+    "size": [
+      0.95,
+      0.95,
+      0.68
+    ],
+    "base": "assets/library/sofa_module",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.64,
+          0.73,
+          0.68,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "ottoman_block",
+    "name": "Ottoman Block (sage)",
+    "category": "furniture",
+    "size": [
+      0.95,
+      0.95,
+      0.42
+    ],
+    "base": "assets/library/ottoman_block",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.643,
+          0.733,
+          0.683,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "power_rack",
+    "name": "Pull-Up / Dip Station",
+    "category": "gym",
+    "size": [
+      1.1,
+      1.1,
+      2.218
+    ],
+    "base": "assets/library/power_rack",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.93,
+          0.93,
+          0.91,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_3.obj",
+        "rgba": [
+          0.721,
+          0.742,
+          0.762,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj",
+      "hull_13.obj",
+      "hull_14.obj",
+      "hull_15.obj",
+      "hull_16.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "exercise_bike",
+    "name": "Exercise Bike",
+    "category": "gym",
+    "size": [
+      1.07,
+      0.536,
+      1.12
+    ],
+    "base": "assets/library/exercise_bike",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.549,
+          0.561,
+          0.582,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj",
+      "hull_13.obj",
+      "hull_14.obj",
+      "hull_15.obj",
+      "hull_16.obj",
+      "hull_17.obj",
+      "hull_18.obj",
+      "hull_19.obj",
+      "hull_20.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "robot_dog_lying",
+    "name": "Robot Dog (lying down)",
+    "category": "robots",
+    "size": [
+      0.7169,
+      0.3025,
+      0.3
+    ],
+    "base": "assets/library/robot_dog_lying",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.781,
+          0.788,
+          0.8,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj",
+      "hull_13.obj",
+      "hull_14.obj",
+      "hull_15.obj",
+      "hull_16.obj",
+      "hull_17.obj",
+      "hull_18.obj",
+      "hull_19.obj",
+      "hull_20.obj",
+      "hull_21.obj",
+      "hull_22.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "humanoid_gantry",
+    "name": "Humanoid on a Gantry",
+    "category": "robots",
+    "size": [
+      1.1,
+      0.97,
+      2.35
+    ],
+    "base": "assets/library/humanoid_gantry",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.085,
+          0.085,
+          0.111,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.749,
+          0.762,
+          0.781,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_2.obj",
+        "rgba": [
+          0.194,
+          0.194,
+          0.219,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_3.obj",
+        "rgba": [
+          0.851,
+          0.502,
+          0.15,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj",
+      "hull_4.obj",
+      "hull_5.obj",
+      "hull_6.obj",
+      "hull_7.obj",
+      "hull_8.obj",
+      "hull_9.obj",
+      "hull_10.obj",
+      "hull_11.obj",
+      "hull_12.obj",
+      "hull_13.obj",
+      "hull_14.obj",
+      "hull_15.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "cardboard_box_small",
+    "name": "Small Cardboard Box",
+    "category": "storage",
+    "size": [
+      0.302,
+      0.25,
+      0.202
+    ],
+    "base": "assets/library/cardboard_box_small",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.721,
+          0.549,
+          0.359,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.8,
+          0.699,
+          0.522,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "cardboard_box_large",
+    "name": "Large Cardboard Box",
+    "category": "storage",
+    "size": [
+      0.602,
+      0.45,
+      0.452
+    ],
+    "base": "assets/library/cardboard_box_large",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.721,
+          0.549,
+          0.359,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.8,
+          0.699,
+          0.522,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
+  },
+  {
+    "id": "cardboard_box_stack",
+    "name": "Stacked Cardboard Boxes",
+    "category": "storage",
+    "size": [
+      0.602,
+      0.4566,
+      0.96
+    ],
+    "base": "assets/library/cardboard_box_stack",
+    "visuals": [
+      {
+        "file": "visual_0.obj",
+        "rgba": [
+          0.715,
+          0.545,
+          0.356,
+          1.0
+        ]
+      },
+      {
+        "file": "visual_1.obj",
+        "rgba": [
+          0.8,
+          0.699,
+          0.522,
+          1.0
+        ]
+      }
+    ],
+    "hulls": [
+      "hull_0.obj",
+      "hull_1.obj",
+      "hull_2.obj",
+      "hull_3.obj"
+    ],
+    "license": "CC0-1.0",
+    "source": "procedural: tools/procedural_assets.py",
+    "frame": "z-up"
   }
 ]

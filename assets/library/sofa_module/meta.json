@@ -1,0 +1,31 @@
+{
+  "id": "sofa_module",
+  "name": "Modular Sofa Seat (sage)",
+  "category": "furniture",
+  "size": [
+    0.95,
+    0.95,
+    0.68
+  ],
+  "base": "",
+  "visuals": [
+    {
+      "file": "visual_0.obj",
+      "rgba": [
+        0.64,
+        0.73,
+        0.68,
+        1.0
+      ]
+    }
+  ],
+  "hulls": [
+    "hull_0.obj",
+    "hull_1.obj",
+    "hull_2.obj",
+    "hull_3.obj"
+  ],
+  "license": "CC0-1.0",
+  "source": "procedural: tools/procedural_assets.py",
+  "frame": "z-up"
+}

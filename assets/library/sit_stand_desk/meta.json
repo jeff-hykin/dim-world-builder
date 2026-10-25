@@ -1,0 +1,58 @@
+{
+  "id": "sit_stand_desk",
+  "name": "Sit-Stand Desk (white)",
+  "category": "furniture",
+  "size": [
+    1.4,
+    0.7,
+    0.75
+  ],
+  "base": "",
+  "visuals": [
+    {
+      "file": "visual_0.obj",
+      "rgba": [
+        0.93,
+        0.93,
+        0.91,
+        1.0
+      ]
+    },
+    {
+      "file": "visual_1.obj",
+      "rgba": [
+        0.851,
+        0.851,
+        0.832,
+        1.0
+      ]
+    },
+    {
+      "file": "visual_2.obj",
+      "rgba": [
+        0.194,
+        0.194,
+        0.219,
+        1.0
+      ]
+    }
+  ],
+  "hulls": [
+    "hull_0.obj",
+    "hull_1.obj",
+    "hull_2.obj",
+    "hull_3.obj",
+    "hull_4.obj",
+    "hull_5.obj",
+    "hull_6.obj",
+    "hull_7.obj",
+    "hull_8.obj",
+    "hull_9.obj",
+    "hull_10.obj",
+    "hull_11.obj",
+    "hull_12.obj"
+  ],
+  "license": "CC0-1.0",
+  "source": "procedural: tools/procedural_assets.py",
+  "frame": "z-up"
+}

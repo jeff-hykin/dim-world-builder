@@ -1,5 +1,7 @@
 // The top bar's clip warning: a moment after each edit the backend checks every pair of collision shapes (MuJoCo) and
-// this lists the pairs that interpenetrate; clicking one selects the first item and glides the camera to the spot.
+// this lists the pairs that interpenetrate: problems (furniture into furniture, or deep into a wall) in red; the expected
+// ones (walls meeting walls, things standing against them) only behind "show expected". Clicking one selects the pair
+// and glides the camera to the spot.
 import { useEffect, useState } from "react";
 import * as api from "../api.ts";
 import { Button } from "../ui.ts";
@@ -15,6 +17,7 @@ export function ClipBadge() {
   const project = useEditor((s) => s.project);
   const [clips, setClips] = useState<api.Clip[]>([]);
   const [open, setOpen] = useState(false);
+  const [showExpected, setShowExpected] = useState(false);
   useEffect(() => {
     let current = true;
     const timer = setTimeout(() => {
@@ -25,10 +28,14 @@ export function ClipBadge() {
       clearTimeout(timer);
     };
   }, [project]);
-  if (!clips.length) return null;
+  const problems = clips.filter((c) => c.severity === "problem");
+  if (!problems.length && !open) return null;
+  const listed = showExpected ? clips : problems;
   const show = (clip: api.Clip) => {
-    const item = keyedProject(getState().project).items.find((i) => i.key === clip.a.key);
-    if (item) select(item.id);
+    const items = keyedProject(getState().project).items;
+    const [a, b] = [clip.a, clip.b].map((s) => items.find((i) => i.key === s.key));
+    select(a?.id ?? b?.id ?? null);
+    if (a && b) select(b.id, { add: true, member: true });
     const camera = view.camera?.get();
     if (camera) {
       // keep looking from the same side, 4 m from the spot
@@ -43,12 +50,13 @@ export function ClipBadge() {
     <div style={{ position: "relative" }}>
       <Button
         size="sm"
-        variant="warn"
+        variant={problems.length ? "danger" : "ghost"}
         icon="alert"
         onClick={() => setOpen(!open)}
         data-testid="clip-badge"
+        title="items passing into each other (walls and floors meeting is expected and not counted)"
       >
-        {clips.length} clipping
+        {problems.length} clipping
       </Button>
       {open && (
         <div
@@ -67,7 +75,18 @@ export function ClipBadge() {
             padding: 4,
           }}
         >
-          {clips.map((clip) => (
+          <label
+            style={{ display: "flex", gap: 6, padding: "4px 8px", color: "var(--muted-fg)" }}
+          >
+            <input
+              type="checkbox"
+              checked={showExpected}
+              onChange={(e) => setShowExpected(e.currentTarget.checked)}
+              data-testid="clip-show-expected"
+            />
+            show expected ({clips.length - problems.length}: walls, floors and things against them)
+          </label>
+          {listed.map((clip) => (
             <button
               type="button"
               key={`${clip.a.key}/${clip.b.key}`}
@@ -80,7 +99,7 @@ export function ClipBadge() {
                 padding: "6px 8px",
                 background: "transparent",
                 border: 0,
-                color: "var(--fg)",
+                color: clip.severity === "problem" ? "var(--danger)" : "var(--muted-fg)",
                 cursor: "pointer",
                 font: "inherit",
               }}

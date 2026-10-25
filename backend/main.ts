@@ -10,7 +10,7 @@
 //   POST /api/open                   public: open a world in the user's World Builder (body: { name } | { path } | { project })
 //   GET|POST /api/views, POST /api/views/remove   public: a saved world's remembered camera views
 //   GET  /api/views/image?name=&view=&width=&height=   public: a PNG of the world from one view (MuJoCo)
-//   POST /api/check                  public: items whose collision shapes interpenetrate (clips), as warnings
+//   POST /api/check, GET /api/project/clips?name=   public: items whose collision shapes interpenetrate, classified
 //   GET  /api/selection              public: the items selected in the most recently active page
 //   POST /api/images?name=           public: store a JPEG/PNG (raw body) for image items; returns { id, src }
 //   PATCH|DELETE /api/project/items  public: change / remove items of a saved world by id (or key)
@@ -38,6 +38,7 @@ import { clutterYard } from "../src/world/examples_clutter.ts";
 import { playground } from "../src/world/examples_playground.ts";
 import { keyedProject, slug } from "../src/world/keys.ts";
 import { mergeEdits } from "../src/world/merge.ts";
+import { classifyClips, type Clip, type RawClip } from "../src/world/clips.ts";
 
 const app = JSON.parse(Deno.env.get("DIMOS_APP") ?? "{}") as {
   name?: string;
@@ -184,9 +185,22 @@ async function cook(job: CookJob, input: string, targetHeight: number | null) {
 
 interface ClipReport {
   tolerance_m?: number;
-  clips: unknown[];
+  /** every clip, classified: problems first */
+  clips: Clip[];
+  /** how many are problems (furniture into furniture, or deep into a wall) and how many expected (structure) */
+  problems: number;
+  expected: number;
+  /** one line per problem (expected ones are only counted here) */
   warnings: string[];
 }
+
+/** what the item endpoints answer: the problems in full, the expected ones counted */
+const clipSummary = ({ clips, problems, expected, warnings }: ClipReport) => ({
+  warnings,
+  clips: clips.filter((c) => c.severity === "problem"),
+  problems,
+  expected,
+});
 
 async function clipCheck(project: Project, tolerance = 0.02): Promise<ClipReport> {
   const parent = `${dataDir}/checks/${crypto.randomUUID()}`;
@@ -215,9 +229,26 @@ async function clipCheck(project: Project, tolerance = 0.02): Promise<ClipReport
     }).output();
     if (!output.success) {
       const detail = new TextDecoder().decode(output.stderr).trim().split("\n").slice(-3).join(" ");
-      return { clips: [], warnings: [`the clip check failed: ${detail}`] };
+      return {
+        clips: [],
+        problems: 0,
+        expected: 0,
+        warnings: [`the clip check failed: ${detail}`],
+      };
     }
-    return JSON.parse(new TextDecoder().decode(output.stdout)) as ClipReport;
+    const raw = JSON.parse(new TextDecoder().decode(output.stdout)) as {
+      tolerance_m: number;
+      clips: RawClip[];
+    };
+    const clips = classifyClips(project, raw.clips);
+    const problems = clips.filter((c) => c.severity === "problem");
+    return {
+      tolerance_m: raw.tolerance_m,
+      clips,
+      problems: problems.length,
+      expected: clips.length - problems.length,
+      warnings: problems.map((c) => c.message),
+    };
   } finally {
     await Deno.remove(parent, { recursive: true }).catch(() => {});
   }
@@ -585,7 +616,11 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     const problem = (project.items ?? []).map(imageProblem).find(Boolean);
     if (problem) return json({ error: problem }, 400);
     await saveProject(project);
-    return json({ saved: packageName(project.name), items: project.items.length });
+    return json({
+      saved: packageName(project.name),
+      items: project.items.length,
+      ...clipSummary(await clipCheck(project)),
+    });
   }
   if (route === "POST /api/project/items") {
     // add items (each a partial item: kind, params, name, position, ...) to a saved project
@@ -598,8 +633,11 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     const added = (items ?? []).map((item) => completeItem(item, project.activeFloor));
     project.items.push(...added);
     await saveProject(project);
-    const { warnings } = await clipCheck(project);
-    return json({ added: added.map((i) => i.id), items: project.items.length, warnings });
+    return json({
+      added: added.map((i) => i.id),
+      items: project.items.length,
+      ...clipSummary(await clipCheck(project)),
+    });
   }
   if (route === "PATCH /api/project/items") {
     // change items by id (or key): the fields given replace the item's; params merge into its params
@@ -629,8 +667,10 @@ async function api(request: Request, url: URL): Promise<Response | null> {
       updated++;
     }
     if (updated) await saveProject(project);
-    const { warnings } = updated ? await clipCheck(project) : { warnings: [] };
-    return json({ updated, missing, items: project.items.length, warnings });
+    const report = updated
+      ? clipSummary(await clipCheck(project))
+      : { warnings: [], clips: [], problems: 0, expected: 0 };
+    return json({ updated, missing, items: project.items.length, ...report });
   }
   if (route === "DELETE /api/project/items") {
     const { name, ids } = await request.json() as { name: string; ids: string[] };
@@ -694,8 +734,11 @@ async function api(request: Request, url: URL): Promise<Response | null> {
     const project = make();
     if (name) project.name = name;
     await saveProject(project);
-    const { warnings } = await clipCheck(project);
-    return json({ saved: packageName(project.name), items: project.items.length, warnings });
+    return json({
+      saved: packageName(project.name),
+      items: project.items.length,
+      ...clipSummary(await clipCheck(project)),
+    });
   }
   if (route === "POST /api/export") {
     const body = await request.json() as { project?: Project; name?: string; parentDir?: string };
@@ -716,8 +759,14 @@ async function api(request: Request, url: URL): Promise<Response | null> {
       `${projectsDir}/${result.name}.json`,
       JSON.stringify(project, null, 2),
     );
-    const { warnings } = await clipCheck(project);
-    return json({ ...result, warnings });
+    return json({ ...result, ...clipSummary(await clipCheck(project)) });
+  }
+  if (route === "GET /api/project/clips") {
+    const name = safeName(url.searchParams.get("name") ?? "");
+    const project = await readJson<Project | null>(`${projectsDir}/${name}.json`, null);
+    if (!project) return json({ error: `no project ${name}` }, 404);
+    const tolerance = Number(url.searchParams.get("tolerance")) || 0.02;
+    return json({ name, ...await clipCheck(project, tolerance) });
   }
   if (route === "POST /api/check") {
     // a saved world by name, or a project as the page has it right now

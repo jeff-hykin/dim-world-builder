@@ -1,0 +1,39 @@
+{
+  "id": "storage_bin_clear",
+  "name": "Clear Storage Bin",
+  "category": "storage",
+  "size": [
+    0.61,
+    0.41,
+    0.35
+  ],
+  "base": "",
+  "visuals": [
+    {
+      "file": "visual_0.obj",
+      "rgba": [
+        0.821,
+        0.878,
+        0.922,
+        1.0
+      ]
+    },
+    {
+      "file": "visual_1.obj",
+      "rgba": [
+        0.699,
+        0.781,
+        0.838,
+        1.0
+      ]
+    }
+  ],
+  "hulls": [
+    "hull_0.obj",
+    "hull_1.obj",
+    "hull_2.obj"
+  ],
+  "license": "CC0-1.0",
+  "source": "procedural: tools/procedural_assets.py",
+  "frame": "z-up"
+}

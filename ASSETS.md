@@ -88,6 +88,23 @@ visual geoms), `hull_<k>.obj` (CoACD convex pieces, MuJoCo collision) and `thumb
 | water_jug          | Gallon Water Jug       | [polyhaven.com/a/plastic_bottle_gallon](https://polyhaven.com/a/plastic_bottle_gallon) (plastic_bottle_gallon_1k.gltf)                             | Rahul Chaudhary (Poly Haven)               | CC0 1.0 | meta.json, visual.glb, visual_0..4.obj, hull_0..14.obj, thumb.png |
 | wet_floor_sign     | Wet Floor Sign         | [polyhaven.com/a/WetFloorSign_01](https://polyhaven.com/a/WetFloorSign_01) (WetFloorSign_01_1k.gltf)                                               | Fran Calvente (Poly Haven)                 | CC0 1.0 | meta.json, visual.glb, visual_0..1.obj, hull_0..7.obj, thumb.png  |
 | wooden_crate       | Wooden Crate           | [polyhaven.com/a/wooden_crate_01](https://polyhaven.com/a/wooden_crate_01) (wooden_crate_01_1k.gltf)                                               | James Ray Cock (Poly Haven)                | CC0 1.0 | meta.json, visual.glb, visual_0..3.obj, hull_0..23.obj, thumb.png |
+| sit_stand_desk     | Sit-Stand Desk (white) | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`sit_stand_desk()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..2.obj, hull_0..12.obj, thumb.png |
+| mesh_office_chair  | Mesh Office Chair      | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`mesh_office_chair()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..2.obj, hull_0..23.obj, thumb.png |
+| papasan_chair      | Papasan Chair          | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`papasan_chair()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..1.obj, hull_0..23.obj, thumb.png |
+| rolling_whiteboard | Rolling Whiteboard     | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`rolling_whiteboard()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..2.obj, hull_0..8.obj, thumb.png |
+| storage_bin_clear  | Clear Storage Bin      | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`storage_bin_clear()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..1.obj, hull_0..2.obj, thumb.png |
+| equipment_case     | Wheeled Equipment Case | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`equipment_case()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..2.obj, hull_0..10.obj, thumb.png |
+| hardshell_suitcase | Hard-Shell Suitcase    | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`hardshell_suitcase()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..3.obj, hull_0..15.obj, thumb.png |
+| bin_cart           | Bin Cart               | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`bin_cart()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..2.obj, hull_0..11.obj, thumb.png |
+| sofa_module        | Modular Sofa Seat (sage) | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`sofa_module()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..0.obj, hull_0..3.obj, thumb.png |
+| ottoman_block      | Ottoman Block (sage)   | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`ottoman_block()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..0.obj, hull_0..1.obj, thumb.png |
+| power_rack         | Pull-Up / Dip Station  | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`power_rack()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..3.obj, hull_0..16.obj, thumb.png |
+| exercise_bike      | Exercise Bike          | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`exercise_bike()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..2.obj, hull_0..20.obj, thumb.png |
+| robot_dog_lying    | Robot Dog (lying down) | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`robot_dog_lying()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..2.obj, hull_0..22.obj, thumb.png |
+| humanoid_gantry    | Humanoid on a Gantry   | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`humanoid_gantry()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..3.obj, hull_0..15.obj, thumb.png |
+| cardboard_box_small | Small Cardboard Box    | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`cardboard_box_small()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..1.obj, hull_0..1.obj, thumb.png |
+| cardboard_box_large | Large Cardboard Box    | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`cardboard_box_large()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..1.obj, hull_0..0.obj, thumb.png |
+| cardboard_box_stack | Stacked Cardboard Boxes | procedural: [tools/procedural_assets.py](tools/procedural_assets.py) (`cardboard_box_stack()`) | dim-world-builder | CC0 1.0 | meta.json, visual.glb, visual_0..1.obj, hull_0..3.obj, thumb.png |
 
 Kenney kits: Furniture Kit 2.0, Survival Kit, City Kit (Roads), each shipping a License.txt that
 states Creative Commons Zero. Poly Haven: all assets are CC0 (https://polyhaven.com/license). Kenney
@@ -104,6 +121,11 @@ triangles (UVs kept) and cooked with `--texture-size 256 --max-faces 3000` to ke
 book_pile is five Quaternius Book1_Closed copies stacked, and shoe_pile is two Boots and two
 Slippers (Isa Lousberg) arranged together, before cooking. The Kenney, Quaternius and Poly Pizza
 kits store sRGB colors as glTF's linear base color, so they are cooked with `--srgb-factors`.
+
+The procedural assets (an office's furniture, gear and robots) are built from boxes, cylinders and
+short revolves by [tools/procedural_assets.py](tools/procedural_assets.py) (no outside model), then
+cooked with `--up z --srgb-factors`: `python tools/procedural_assets.py <dir>`, then `cook.py` each
+`<dir>/<id>.glb`. They are this project's own work, CC0 1.0 like the rest.
 
 **License note (2026-10-11):** quaternius.com now shows a site-wide "Quaternius Asset License"
 (updated 2026-08-28) that restricts redistributing assets as assets, while each pack page used here

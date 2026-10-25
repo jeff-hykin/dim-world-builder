@@ -206,6 +206,8 @@ interface ItemBase {
   group?: string;
   /** free-text comments about it, from people or agents (where it came from, what to fix) */
   notes?: string;
+  /** part of the building (walls, floors, columns...): clips with it are expected; unset: judged by its kind and name */
+  structure?: boolean;
 }
 
 /** items bundled to move as one (the members carry its id; the export still writes each member) */

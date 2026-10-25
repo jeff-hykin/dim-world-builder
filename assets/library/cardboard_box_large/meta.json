@@ -1,0 +1,37 @@
+{
+  "id": "cardboard_box_large",
+  "name": "Large Cardboard Box",
+  "category": "storage",
+  "size": [
+    0.602,
+    0.45,
+    0.452
+  ],
+  "base": "",
+  "visuals": [
+    {
+      "file": "visual_0.obj",
+      "rgba": [
+        0.721,
+        0.549,
+        0.359,
+        1.0
+      ]
+    },
+    {
+      "file": "visual_1.obj",
+      "rgba": [
+        0.8,
+        0.699,
+        0.522,
+        1.0
+      ]
+    }
+  ],
+  "hulls": [
+    "hull_0.obj"
+  ],
+  "license": "CC0-1.0",
+  "source": "procedural: tools/procedural_assets.py",
+  "frame": "z-up"
+}

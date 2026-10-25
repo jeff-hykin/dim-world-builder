@@ -48,8 +48,7 @@ provides:
             post:
                 description: >-
                     Write a world as a dimos sim2 scene folder <parentDir>/<name>/ (scene.xml, scene.json, a Python package)
-                    and also save the project. Returns { dir, name, files, bodies, movers, warnings }; warnings lists items
-                    that clip into each other
+                    and also save the project. Returns { dir, name, files, bodies, movers } and the clip report: warnings (one PROBLEM line each), clips (the problems: [{ severity, a, b ({ id, key, name, kind, structure }), depth_m, at [x,y,z], message }]), problems and expected (counts)
                 x-when: you want a world as a dimos sim2 scene to run in simulation
                 requestBody:
                     content:
@@ -120,8 +119,7 @@ provides:
             post:
                 description: >-
                     Save (create or replace) a world project under its name (snake_cased); open pages showing it update
-                    live (a page with unsaved edits asks first). Returns { saved: name, items: count
-                    }; 400 if the project is not dim-world-builder.project.v1
+                    live (a page with unsaved edits merges its own edits in). Returns { saved: name, items: count } and the clip report: warnings (one PROBLEM line each), clips (the problems: [{ severity, a, b ({ id, key, name, kind, structure }), depth_m, at [x,y,z], message }]), problems and expected (counts); 400 if the project is not dim-world-builder.project.v1
                 x-when: you want to save a whole world you built or edited yourself
                 requestBody:
                     content:
@@ -142,7 +140,7 @@ provides:
                     clip check): params { src (from POST /api/images), width, height (meters), opacity? (0-1, default 1),
                     doubleSided? (default true) }; the picture lies in the item's local y-z plane centered on position (its
                     center, not its base), facing local +x, with +y its right and +z its top as seen from in front. Returns
-                    { added: [item id], items: count, warnings }; warnings lists items that now clip into each other
+                    { added: [item id], items: count } and the clip report: warnings (one PROBLEM line each), clips (the problems: [{ severity, a, b ({ id, key, name, kind, structure }), depth_m, at [x,y,z], message }]), problems and expected (counts)
                 x-when: you want to add objects, rooms, stairs or obstacles to a saved world
                 requestBody:
                     content:
@@ -161,8 +159,7 @@ provides:
                     Change items of a saved world in place. Each entry names an item by id (or key) and gives the fields to
                     change: name, key, floor, position [x,y,z], rotation [x,y,z,w], scale, mover, notes, and params (merged
                     into the item's params, so { params: { width: 2 } } changes only the width). Open pages show it live.
-                    Returns { updated: count, missing: [ids not found], items: count, warnings }; warnings lists items that
-                    now clip into each other
+                    Returns { updated: count, missing: [ids not found], items: count } and the clip report: warnings (one PROBLEM line each), clips (the problems: [{ severity, a, b ({ id, key, name, kind, structure }), depth_m, at [x,y,z], message }]), problems and expected (counts)
                 x-when: you want to move, resize, rename, retune or annotate items already in a world
                 requestBody:
                     content:
@@ -330,7 +327,7 @@ provides:
             post:
                 description: >-
                     Generate and save a world (playground is a big two-floor test scene; test_course, clutter_yard, empty).
-                    Returns { saved: name, items: count, warnings }; warnings lists items that clip into each other
+                    Returns { saved: name, items: count } and the clip report: warnings (one PROBLEM line each), clips (the problems: [{ severity, a, b ({ id, key, name, kind, structure }), depth_m, at [x,y,z], message }]), problems and expected (counts)
                 x-when: you want a ready-made test world to start from
                 requestBody:
                     content:
@@ -351,8 +348,12 @@ provides:
             post:
                 description: >-
                     Which items clip into each other: MuJoCo checks every pair of collision shapes (floors, hills and image
-                    items excluded).
-                    clips: [{a, b (key, name, kind), depth_m, at [x,y,z]}], warnings: one line each
+                    items excluded), and each clip is classified. "expected": structure meeting structure (walls, floors,
+                    columns, doors, windows, lintels, sills, stairs, rooms, holes, or any item with structure: true; else
+                    judged by kind and name), or a thing standing against structure by 5 cm or less. "problem": furniture
+                    or objects passing into each other, or more than 5 cm into structure. Returns { clips: [{ severity
+                    (problem|expected), a, b ({ id, key, name, kind, structure }), depth_m, at [x,y,z], message }]
+                    (problems first), problems, expected (counts), warnings (one "PROBLEM: ..." line per problem) }
                 x-when: you need to know whether items in a world overlap
                 x-dimos-role: context
                 requestBody:
@@ -370,6 +371,26 @@ provides:
                                     tolerance:
                                         type: number
                                         description: meters of overlap to ignore (default 0.02)
+        /api/project/clips:
+            get:
+                description: >-
+                    The classified clips of a saved world (as POST /api/check: { name, clips (problems first, then expected),
+                    problems, expected, warnings }). Fix the problems; expected ones (walls meeting walls, furniture against
+                    a wall) are fine. Mark an item that is part of the building with structure: true (PATCH
+                    /api/project/items) when its name doesn't say so
+                x-when: you need to know what in a world is clipping and whether it matters
+                x-dimos-role: context
+                parameters:
+                    -   name: name
+                        in: query
+                        schema:
+                            type: string
+                        description: the world's name
+                    -   name: tolerance
+                        in: query
+                        schema:
+                            type: number
+                        description: meters of overlap to ignore (default 0.02)
         /api/views:
             get:
                 description: >-

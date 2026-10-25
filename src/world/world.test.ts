@@ -453,3 +453,40 @@ describe("mergeEdits", () => {
     expect(merged.items.map((i) => [i.id, i.position[0]])).toEqual([["a", 5], ["b", 9], ["d", 1]]);
   });
 });
+
+describe("classifyClips", () => {
+  it("walls meeting is expected, furniture into furniture or deep into a wall is a problem", async () => {
+    const { classifyClips } = await import("./clips.ts");
+    const project = emptyProject("c");
+    const box = (key: string, name: string) => ({
+      ...makeItem("primitive", { shape: "box", color: [1, 1, 1] }, { name, floor: "ground" }),
+      id: key,
+      key,
+    });
+    project.items = [
+      box("w1", "Room wall"),
+      box("w2", "Outer wall"),
+      box("desk", "Desk"),
+      box("chair", "Office chair"),
+    ];
+    const raw = (a: string, b: string, depth: number) => ({
+      a: { key: a, name: a, kind: "box" },
+      b: { key: b, name: b, kind: "box" },
+      depth_m: depth,
+      at: [0, 0, 0] as Vec3,
+    });
+    const clips = classifyClips(project, [
+      raw("w1", "w2", 0.2),
+      raw("desk", "w1", 0.03),
+      raw("desk", "w2", 0.3),
+      raw("chair", "desk", 0.1),
+    ]);
+    const by = (a: string, b: string) => clips.find((c) => c.a.key === a && c.b.key === b)!;
+    expect(by("w1", "w2").severity).toBe("expected");
+    expect(by("desk", "w1").severity).toBe("expected");
+    expect(by("desk", "w2").severity).toBe("problem");
+    expect(by("chair", "desk").severity).toBe("problem");
+    expect(by("chair", "desk").message).toMatch(/^PROBLEM: chair \(chair\) clips into desk/);
+    expect(clips[0].severity).toBe("problem");
+  });
+});

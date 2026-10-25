@@ -1,0 +1,70 @@
+{
+  "id": "humanoid_gantry",
+  "name": "Humanoid on a Gantry",
+  "category": "robots",
+  "size": [
+    1.1,
+    0.97,
+    2.35
+  ],
+  "base": "",
+  "visuals": [
+    {
+      "file": "visual_0.obj",
+      "rgba": [
+        0.085,
+        0.085,
+        0.111,
+        1.0
+      ]
+    },
+    {
+      "file": "visual_1.obj",
+      "rgba": [
+        0.749,
+        0.762,
+        0.781,
+        1.0
+      ]
+    },
+    {
+      "file": "visual_2.obj",
+      "rgba": [
+        0.194,
+        0.194,
+        0.219,
+        1.0
+      ]
+    },
+    {
+      "file": "visual_3.obj",
+      "rgba": [
+        0.851,
+        0.502,
+        0.15,
+        1.0
+      ]
+    }
+  ],
+  "hulls": [
+    "hull_0.obj",
+    "hull_1.obj",
+    "hull_2.obj",
+    "hull_3.obj",
+    "hull_4.obj",
+    "hull_5.obj",
+    "hull_6.obj",
+    "hull_7.obj",
+    "hull_8.obj",
+    "hull_9.obj",
+    "hull_10.obj",
+    "hull_11.obj",
+    "hull_12.obj",
+    "hull_13.obj",
+    "hull_14.obj",
+    "hull_15.obj"
+  ],
+  "license": "CC0-1.0",
+  "source": "procedural: tools/procedural_assets.py",
+  "frame": "z-up"
+}

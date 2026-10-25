@@ -1,6 +1,7 @@
 // The app's own server (backend/main.ts), through relative URLs (Desktop serves the page at /apps/<name>/).
 import type { Item, MeshAsset, Project, Vec3 } from "./world/types.ts";
 import { packageName } from "./world/keys.ts";
+import type { Clip } from "./world/clips.ts";
 
 export async function json<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
@@ -117,15 +118,14 @@ export function startImport(file: File, name: string, height: number | null) {
 }
 export const importStatus = (job: string) => json<CookJob>(`api/internal/import/${job}`);
 
-/** one item clipping into another (backend: cooker/check_clips.py, MuJoCo contacts) */
-export interface Clip {
-  a: { key: string; name: string; kind: string | null };
-  b: { key: string; name: string; kind: string | null };
-  depth_m: number;
-  at: [number, number, number];
-}
+/** one item clipping into another (backend: cooker/check_clips.py, MuJoCo contacts), classified (world/clips.ts) */
+export type { Clip } from "./world/clips.ts";
 export const checkClips = (project: Project) =>
-  send<{ clips: Clip[]; warnings: string[] }>("POST", "api/check", { project });
+  send<{ clips: Clip[]; problems: number; expected: number; warnings: string[] }>(
+    "POST",
+    "api/check",
+    { project },
+  );
 
 /** this page's world and selection, for agents (GET api/selection answers with the latest page's) */
 export const reportSelection = (world: string, ids: string[], items: Item[]) =>
