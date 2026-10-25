@@ -1,14 +1,22 @@
 # the app's contract with Desktop: https://github.com/jeff-hykin/dimos-desktop-mirror/blob/main/docs/create-apps/index.md
 title: World Builder
-version: "0.2.2"
-spec-version: v1.4
+version: "0.3.0"
+spec-version: v1.5
 uses:
     "@desktop-gateway":
-        # export/open with show: switch World Builder's open pages to the world, and open it in the user's window
-        - POST /ui/apps/{pkg}/frontend/{topic}
-        - POST /ui/apps/{pkg}/open
-        # dimos-react's zenoh client: where the zenoh-gateway and this app's namespace are
-        - GET /management/gateways/zenoh
+        # what this server reads of DIMOS_APP; `app check` says when Desktop doesn't set one, and a launch that
+        # can't resolve one says so in this app's own log
+        env:
+            DIMOS_APP.socket: the unix socket this server binds
+            DIMOS_APP.name: names this install in its own links
+            DIMOS_APP.dataDir: its own folder, for the worlds it keeps
+            DIMOS_APP.desktopUrl: Desktop's loopback origin, which its own API is reached through
+        endpoints:
+            # export/open with show: switch World Builder's open pages to the world, and open it in the user's window
+            - POST /ui/apps/{pkg}/frontend/{topic}
+            - POST /ui/apps/{pkg}/open
+            # dimos-react's zenoh client: where the zenoh-gateway and this app's namespace are
+            - GET /management/gateways/zenoh
     # viewer mode: the running simulation's TF (robot + moving objects) and lidar, through Desktop's zenoh-gateway
     "@zenoh-gateway": ">=0.5 <0.6"
 # spec v1.2: the page only reads; it never publishes (no command topics)
