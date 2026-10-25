@@ -327,12 +327,21 @@ export function removeItem(id: string) {
   if (state.selected === id) set({ selected: null, drawingPath: null });
 }
 
+/** "Desk" -> "Desk copy1"; "Desk copy1" -> the next free "Desk copyN" (old "copy copy" names count as copies too) */
+export function copyName(name: string, taken: string[]): string {
+  const base = name.replace(/( copy\d*)+$/, "");
+  const used = new Set(taken);
+  let n = 1;
+  while (used.has(`${base} copy${n}`)) n++;
+  return `${base} copy${n}`;
+}
+
 export function duplicateItem(id: string) {
   const item = state.project.items.find((i) => i.id === id);
   if (!item) return;
   const copy = structuredClone(item);
   copy.id = newId();
-  copy.name = `${item.name} copy`;
+  copy.name = copyName(item.name, state.project.items.map((i) => i.name));
   delete copy.key;
   copy.position = [item.position[0] + 0.5, item.position[1] + 0.5, item.position[2]] as Vec3;
   addItem(copy);

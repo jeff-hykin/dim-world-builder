@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { emptyProject, makeItem } from "../world/defaults.ts";
-import { addFloor, getState, loadProject } from "./store.ts";
+import { addFloor, copyName, getState, loadProject } from "./store.ts";
 
 test("a new floor comes with a slab over what's on the floor below, so what's added to it stands on something", () => {
   const project = emptyProject("t");
@@ -22,4 +22,10 @@ test("a new floor comes with a slab over what's on the floor below, so what's ad
   expect(getState().project.activeFloor).toBe(floor.id);
   expect(floor.elevation).toBe(3);
   expect(floor.slab).toMatchObject({ sizeX: 13, sizeY: 7, center: [5, 2] });
+});
+
+test("copies are numbered instead of stacking ' copy'", () => {
+  expect(copyName("Desk", ["Desk"])).toBe("Desk copy1");
+  expect(copyName("Desk copy1", ["Desk", "Desk copy1"])).toBe("Desk copy2");
+  expect(copyName("Desk copy copy copy", ["Desk"])).toBe("Desk copy1");
 });
