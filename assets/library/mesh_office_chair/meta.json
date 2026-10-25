@@ -64,6 +64,6 @@
     "hull_23.obj"
   ],
   "license": "CC0-1.0",
-  "source": "procedural: tools/procedural_assets.py",
+  "source": "procedural: tools/procedural_assets.py (mesh_office_chair())",
   "frame": "z-up"
 }

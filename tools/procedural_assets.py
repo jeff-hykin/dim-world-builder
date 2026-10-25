@@ -117,7 +117,7 @@ def mesh_office_chair():
     m.disc(0.03, 0.32, (0, 0, 0.27), STEEL)
     m.box((0.5, 0.5, 0.08), (0.02, 0, 0.47), BLACK)
     # the backrest: a mesh panel in a frame, leaning back
-    lean = math.radians(12)
+    lean = math.radians(-12)
     back = (-0.25, 0, 0.82)
     m.box((0.03, 0.46, 0.6), back, CHARCOAL, rotate=(lean, [0, 1, 0]))
     for y in (-0.24, 0.24):
