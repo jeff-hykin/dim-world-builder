@@ -59,11 +59,12 @@ Reference photos: `POST api/images` (a JPEG/PNG body) returns `{ id, src }`; an 
 y-z, centered on its position, facing +x. It is visual only: no collision, not in the clip check,
 left out of the export. `GET api/selection` is what the user has selected in the page used last.
 
-Working on a world with an agent: changes made through the API (`POST`/`PATCH`/`DELETE
-api/project/items`, `POST api/project`, `POST api/project/undo`, ...) show up live in the open pages,
-keeping their view and selection; a page with unsaved edits keeps them and asks before loading the
-new version. `GET|POST api/camera` reads or moves the user's view, `POST api/highlight` blinks items,
-`GET api/project/history` lists a world's last 50 versions. Items can carry `notes`.
+Working on a world with an agent: changes made through the API
+(`POST`/`PATCH`/`DELETE api/project/items`, `POST api/project`, `POST api/project/undo`, ...) show
+up live in the open pages, keeping their view and selection; a page with unsaved edits keeps them
+and asks before loading the new version. `GET|POST api/camera` reads or moves the user's view,
+`POST api/highlight` blinks items, `GET api/project/history` lists a world's last 50 versions. Items
+can carry `notes`.
 
 ## Develop
 
