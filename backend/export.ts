@@ -105,7 +105,7 @@ function readme(name: string, project: Project): string {
   const world = name.replace(/_/g, "-");
   return `# ${name}
 
-A [dim-world-builder](https://github.com/jeff-hykin/dim-world-builder) world: ${project.items.length} items,
+A [dim-world-builder](https://github.com/dimensionalOS/dim-world-builder) world: ${project.items.length} items,
 ${project.floors.length} floor(s). \`scene.json\` is sim2's scene; its \`extensions.${EXTENSION}\` holds the views and the editor's
 project; its \`annotations\` are labeled points, paths and areas (the nav test: \`verify/nav_eval.py\` runs it).
 
