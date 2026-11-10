@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         # what Desktop builds on each kind of machine (the page's deno install has one hash per system, flake.nix)
-        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest, macos-15-intel]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
